@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  # ── Local PostgreSQL (mirrors Supabase schema for offline dev) ─────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: backtester
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # ── FastAPI backtesting microservice ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/backtester
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app   # hot-reload in dev
+
+volumes:
+  postgres_data:
