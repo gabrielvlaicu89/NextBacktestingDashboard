@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { getStrategiesByIds } from "@/lib/actions/strategies";
 import { ComparisonMetricsTable } from "@/components/comparison/comparison-metrics-table";
 import { ComparisonEquityChart, COMPARISON_COLORS } from "@/components/comparison/comparison-equity-chart";
-import type { BacktestResponse } from "@/lib/types";
+import type { BacktestResponse, StrategyWithRuns } from "@/lib/types";
 
 interface ComparePageProps {
   searchParams: Promise<{ ids?: string }>;
@@ -25,11 +25,11 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
     redirect("/dashboard");
   }
 
-  let strategies;
+  let strategies: StrategyWithRuns[] = [];
   try {
     strategies = await getStrategiesByIds(ids);
   } catch {
-    strategies = [];
+    // keep empty array
   }
 
   // Build per-strategy comparison items

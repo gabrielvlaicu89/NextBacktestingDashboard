@@ -5,7 +5,7 @@
  * and single-strategy edge cases.
  */
 import { describe, it, expect } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { ComparisonMetricsTable } from "@/components/comparison/comparison-metrics-table";
 import type { StrategyWithRuns, BacktestResponse } from "@/lib/types";
 

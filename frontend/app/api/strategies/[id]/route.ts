@@ -8,6 +8,7 @@
 import { getServerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateStrategySchema } from "@/lib/validations";
+import { Prisma } from "@/app/generated/prisma/client";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -76,15 +77,24 @@ export async function PATCH(req: Request, context: RouteContext) {
     );
   }
 
-  const { dateFrom, dateTo, ...rest } = parsed.data;
+  const { dateFrom, dateTo, parameters, riskSettings, ...rest } = parsed.data;
+
+  // Cast parameters/riskSettings for Prisma Json fields
+  const data = {
+    ...rest,
+    ...(parameters !== undefined
+      ? { parameters: parameters as Prisma.InputJsonValue }
+      : {}),
+    ...(riskSettings !== undefined
+      ? { riskSettings: riskSettings as Prisma.InputJsonValue }
+      : {}),
+    ...(dateFrom ? { dateFrom: new Date(dateFrom) } : {}),
+    ...(dateTo ? { dateTo: new Date(dateTo) } : {}),
+  };
 
   const updated = await prisma.strategy.update({
     where: { id },
-    data: {
-      ...rest,
-      ...(dateFrom ? { dateFrom: new Date(dateFrom) } : {}),
-      ...(dateTo ? { dateTo: new Date(dateTo) } : {}),
-    },
+    data,
   });
 
   return Response.json({

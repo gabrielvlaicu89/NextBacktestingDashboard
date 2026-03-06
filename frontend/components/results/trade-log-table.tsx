@@ -157,6 +157,7 @@ export function TradeLogTable({
   const [sorting, setSorting] = useState<SortingState>([]);
   const data = useMemo(() => trades, [trades]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

@@ -7,7 +7,7 @@ import { TickerSearch } from "@/components/strategy-builder/ticker-search";
 // ---------------------------------------------------------------------------
 
 const mockSetQuery = vi.fn();
-const mockResults = vi.fn<[], { symbol: string; name: string }[]>(() => []);
+const mockResults = vi.fn<() => { symbol: string; name: string }[]>(() => []);
 const mockLoading = vi.fn(() => false);
 
 vi.mock("@/hooks/useTickerSearch", () => ({

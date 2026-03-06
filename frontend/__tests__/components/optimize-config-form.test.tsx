@@ -4,7 +4,7 @@
  * Verifies rendering of numeric param range inputs, fixed-param display,
  * metric selector, form submission shape, and disabled state.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { OptimizeConfigForm } from "@/components/optimization/optimize-config-form";
 import type { StrategyWithRuns, StrategyCatalogItem, OptimizeConfig } from "@/lib/types";
@@ -78,10 +78,10 @@ function makeStrategy(type: string, parameters: Record<string, unknown> = {}): S
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe("OptimizeConfigForm", () => {
-  let onSubmit: ReturnType<typeof vi.fn>;
+  let onSubmit: Mock<(config: OptimizeConfig) => void>;
 
   beforeEach(() => {
-    onSubmit = vi.fn();
+    onSubmit = vi.fn<(config: OptimizeConfig) => void>();
   });
 
   // Rendering

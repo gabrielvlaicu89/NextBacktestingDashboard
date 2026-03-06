@@ -384,4 +384,4 @@ For future reference, here's every polyfill we've added to `vitest.setup.ts` acr
 
 ---
 
-**Next:** Lesson 36 will cover Phase 9 — Strategy Comparison page and Parameter Optimization.
+**Next:** [Lesson 36 — Strategy Comparison: Multi-Series Data Flow and Best-Value Highlighting](./36-strategy-comparison-page.md)

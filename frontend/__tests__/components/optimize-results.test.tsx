@@ -8,7 +8,7 @@
  *  - click handlers fire onRunConfig with the right params
  *  - empty results state
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { OptimizeResults } from "@/components/optimization/optimize-results";
@@ -17,6 +17,7 @@ import type { OptimizeResultEntry } from "@/lib/types";
 // ── Mock Recharts (not a full DOM environment) ─────────────────────────────────
 
 vi.mock("recharts", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require("react");
   return {
     ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
@@ -62,10 +63,10 @@ const threeParamResults: OptimizeResultEntry[] = [
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe("OptimizeResults", () => {
-  let onRunConfig: ReturnType<typeof vi.fn>;
+  let onRunConfig: Mock<(params: Record<string, unknown>) => void>;
 
   beforeEach(() => {
-    onRunConfig = vi.fn();
+    onRunConfig = vi.fn<(params: Record<string, unknown>) => void>();
   });
 
   // Empty state

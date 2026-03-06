@@ -9,6 +9,7 @@
 import { getServerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { backtestRequestSchema } from "@/lib/validations";
+import { Prisma } from "@/app/generated/prisma/client";
 
 export interface CreateRunResult {
   strategyId: string;
@@ -51,8 +52,8 @@ export async function createBacktestRun(input: {
       benchmark,
       dateFrom: new Date(date_from),
       dateTo: new Date(date_to),
-      parameters: parameters ?? {},
-      riskSettings: risk_settings ?? {},
+      parameters: (parameters ?? {}) as Prisma.InputJsonValue,
+      riskSettings: (risk_settings ?? {}) as Prisma.InputJsonValue,
       tags: input.tags ?? [],
     },
   });

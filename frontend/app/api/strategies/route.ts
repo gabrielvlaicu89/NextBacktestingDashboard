@@ -7,6 +7,7 @@
 import { getServerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createStrategySchema } from "@/lib/validations";
+import { Prisma } from "@/app/generated/prisma/client";
 
 export async function GET() {
   const session = await getServerSession();
@@ -64,8 +65,8 @@ export async function POST(req: Request) {
       benchmark,
       dateFrom: new Date(dateFrom),
       dateTo: new Date(dateTo),
-      parameters,
-      riskSettings,
+      parameters: parameters as Prisma.InputJsonValue,
+      riskSettings: riskSettings as Prisma.InputJsonValue,
       tags,
     },
   });

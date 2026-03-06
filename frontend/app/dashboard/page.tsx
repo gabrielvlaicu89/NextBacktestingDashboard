@@ -1,17 +1,18 @@
 import { getServerSession } from "@/lib/auth";
 import { getStrategies } from "@/lib/actions/strategies";
 import { WorkspaceGrid } from "@/components/workspace/workspace-grid";
+import type { StrategyWithRuns } from "@/lib/types";
 
 export default async function DashboardPage() {
   // Auth is enforced by the dashboard layout — session is guaranteed here.
   const session = await getServerSession();
 
   // Fetch strategies on the server (avoids client-side loading spinner)
-  let strategies;
+  let strategies: StrategyWithRuns[] = [];
   try {
     strategies = await getStrategies();
   } catch {
-    strategies = [];
+    // keep empty array
   }
 
   return (

@@ -100,11 +100,12 @@ export function ComparisonEquityChart({
     const ro = new ResizeObserver(handleResize);
     ro.observe(containerRef.current);
 
+    const currentSeriesRefs = seriesRefsMap.current;
     return () => {
       ro.disconnect();
       chart.remove();
       chartRef.current = null;
-      seriesRefsMap.current.clear();
+      currentSeriesRefs.clear();
     };
   }, [series, height]);
 
