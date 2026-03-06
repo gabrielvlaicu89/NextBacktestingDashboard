@@ -116,103 +116,111 @@
 
 ---
 
-## Phase 4 — Next.js API Layer & Data Flow
+## Phase 4 — Next.js API Layer & Data Flow ✅
 
-- [ ] **15. Create Next.js API routes (proxy layer)**
-  - [ ] `app/api/backtest/route.ts` — calls FastAPI, stores results in Prisma, returns to client
-  - [ ] `app/api/tickers/route.ts` — proxies ticker search to FastAPI
-  - [ ] `app/api/strategies/route.ts` — CRUD (GET list, POST create, PATCH update, DELETE)
-  - [ ] `app/api/strategies/[id]/route.ts` — GET single strategy + its backtest runs
+- [x] **15. Create Next.js API routes (proxy layer)**
+  - [x] `app/api/backtest/route.ts` — GET: SSE stream proxy to FastAPI, stores results in Prisma on completion
+  - [x] `app/api/tickers/route.ts` — GET: proxies ticker search to FastAPI
+  - [x] `app/api/strategies/route.ts` — GET list, POST create (auth-gated, zod-validated)
+  - [x] `app/api/strategies/[id]/route.ts` — GET single strategy + runs, PATCH update, DELETE
 
-- [ ] **16. Set up Redux Toolkit store**
-  - [ ] `store/store.ts` — configure store
-  - [ ] `store/slices/strategyBuilderSlice.ts` — form state (ticker, dates, type, params, risk settings, benchmark)
-  - [ ] `store/slices/backtestSlice.ts` — run status, progress %, results
-  - [ ] `store/slices/comparisonSlice.ts` — selected strategy IDs, comparison results
-  - [ ] `store/slices/workspaceSlice.ts` — saved strategies list, filters, sort order
-  - [ ] `store/provider.tsx` — Redux Provider wrapper
-  - [ ] Wrap root layout with provider
+- [x] **16. Set up Redux Toolkit store**
+  - [x] `store/store.ts` — configure store with 4 slices
+  - [x] `store/slices/strategyBuilderSlice.ts` — form state (ticker, dates, type, params, risk settings, benchmark, name, tags)
+  - [x] `store/slices/backtestSlice.ts` — run status, progress %, results, error
+  - [x] `store/slices/comparisonSlice.ts` — selected strategy IDs, comparison results
+  - [x] `store/slices/workspaceSlice.ts` — saved strategies list, filters, sort order
+  - [x] `store/provider.tsx` — Redux Provider wrapper (`"use client"`)
+  - [x] Wrap root layout with provider
 
-- [ ] **17. Create data fetching hooks & server actions**
-  - [ ] `lib/actions/backtest.ts` — server action to trigger backtest
-  - [ ] `lib/actions/strategies.ts` — server actions for strategy CRUD
-  - [ ] `hooks/useBacktestStream.ts` — `EventSource` hook, parses SSE events, dispatches to Redux
-  - [ ] `hooks/useTickerSearch.ts` — debounced search hook for ticker autocomplete
-
----
-
-## Phase 5 — Frontend UI — Layout & Shell
-
-- [ ] **18. Build the app shell and layout**
-  - [ ] `app/layout.tsx` — root layout with Redux Provider, NextAuth SessionProvider, global styles, font
-  - [ ] `app/dashboard/layout.tsx` — sidebar layout (Logo, nav items, user avatar + sign out)
-  - [ ] Dark mode support via `next-themes`
-
-- [ ] **19. Build the landing/login page**
-  - [ ] `app/page.tsx` — public landing with hero section
-  - [ ] `app/(auth)/login/page.tsx` — "Sign in with Google" card
+- [x] **17. Create data fetching hooks & server actions**
+  - [x] `lib/actions/backtest.ts` — server action to create Strategy + BacktestRun records
+  - [x] `lib/actions/strategies.ts` — server actions for strategy CRUD (getStrategies, getStrategy, createStrategy, updateStrategy, deleteStrategy)
+  - [x] `hooks/useBacktestStream.ts` — EventSource hook, parses SSE events, dispatches to Redux
+  - [x] `hooks/useTickerSearch.ts` — debounced search hook with AbortController for ticker autocomplete
+  - [x] `lib/types.ts` — shared TypeScript types mirroring backend Pydantic schemas
+  - [x] `lib/validations.ts` — zod schemas for all API payloads
 
 ---
 
-## Phase 6 — Frontend UI — Strategy Builder
+## Phase 5 — Frontend UI — Layout & Shell ✅
 
-- [ ] **20. Build the Strategy Builder page**
-  - [ ] `app/dashboard/new/page.tsx` — main form page
-  - [ ] `TickerSearch` component — shadcn `Command` combobox with debounced search
-  - [ ] `DateRangePicker` component — shadcn `Calendar` + `Popover`
-  - [ ] `StrategyTypeSelector` component — `Select` or card-based picker
-  - [ ] `StrategyParamsForm` component — dynamic fields per strategy type, validated via zod:
-    - [ ] Mean Reversion: Z-score window, threshold, holding period
-    - [ ] MA Crossover: fast period, slow period, MA type (SMA/EMA)
-    - [ ] PEAD: days before, days after, EPS surprise threshold
-    - [ ] Pairs Trading: second ticker, correlation window, spread threshold
-    - [ ] Buy & Hold: no params
-  - [ ] `RiskSettingsForm` component — capital, position sizing mode/size, stop-loss %, take-profit %
-  - [ ] `BenchmarkSelector` component — ticker search, defaulting to SPY
-  - [ ] `RunButton` — validates form, dispatches to Redux, triggers server action
+- [x] **18. Build the app shell and layout**
+  - [x] `app/layout.tsx` — root layout with Redux Provider, NextAuth SessionProvider, ThemeProvider, global styles, font
+  - [x] `app/dashboard/layout.tsx` — sidebar layout (Logo, nav items, user avatar + sign out)
+  - [x] Dark mode support via `next-themes`
+  - [x] `components/ui/button.tsx`, `avatar.tsx`, `dropdown-menu.tsx`, `separator.tsx`, `sheet.tsx` — shadcn/ui primitives
+  - [x] `components/layout/app-sidebar.tsx` — sidebar with nav items, theme toggle, user menu
+  - [x] `components/layout/mobile-header.tsx` — responsive hamburger + Sheet sidebar for mobile
+  - [x] `components/layout/theme-toggle.tsx` — sun/moon theme switch
+  - [x] `components/layout/user-menu.tsx` — avatar + dropdown with sign out
+  - [x] `components/providers/theme-provider.tsx` — next-themes wrapper
 
-- [ ] **21. Build the onboarding modal**
-  - [ ] Show for first-time users (0 saved strategies)
-  - [ ] Strategy template cards (e.g., "SPY Mean Reversion 2020–2024", "AAPL MA Crossover")
-  - [ ] Clicking a template pre-fills the Strategy Builder
+- [x] **19. Build the landing/login page**
+  - [x] `app/page.tsx` — public landing with hero section + feature cards
+  - [x] `app/(auth)/login/page.tsx` — "Sign in with Google" card (Phase 2)
+
+---
+
+## Phase 6 — Frontend UI — Strategy Builder ✅
+
+- [x] **20. Build the Strategy Builder page**
+  - [x] `app/dashboard/new/page.tsx` — main form page
+  - [x] `TickerSearch` component — shadcn `Command` combobox with debounced search
+  - [x] `DateRangePicker` component — shadcn `Calendar` + `Popover`
+  - [x] `StrategyTypeSelector` component — `Select` or card-based picker
+  - [x] `StrategyParamsForm` component — dynamic fields per strategy type, validated via zod:
+    - [x] Mean Reversion: Z-score window, threshold, holding period
+    - [x] MA Crossover: fast period, slow period, MA type (SMA/EMA)
+    - [x] PEAD: days before, days after, EPS surprise threshold
+    - [x] Pairs Trading: second ticker, correlation window, spread threshold
+    - [x] Buy & Hold: no params
+  - [x] `RiskSettingsForm` component — capital, position sizing mode/size, stop-loss %, take-profit %
+  - [x] `BenchmarkSelector` component — ticker search, defaulting to SPY
+  - [x] `RunButton` — validates form, dispatches to Redux, triggers server action
+
+- [x] **21. Build the onboarding modal**
+  - [x] Show for first-time users (0 saved strategies)
+  - [x] Strategy template cards (e.g., "SPY Mean Reversion 2020–2024", "AAPL MA Crossover")
+  - [x] Clicking a template pre-fills the Strategy Builder
 
 ---
 
 ## Phase 7 — Frontend UI — Results Dashboard
 
-- [ ] **22. Build the results page shell**
-  - [ ] `app/dashboard/results/[id]/page.tsx` — fetches backtest run by ID
-  - [ ] Loading state: progress bar + status text from SSE stream while backtest runs
+- [x] **22. Build the results page shell**
+  - [x] `app/dashboard/results/[id]/page.tsx` — fetches backtest run by ID
+  - [x] Loading state: progress bar + status text from SSE stream while backtest runs
 
-- [ ] **23. Build Performance Cards row**
-  - [ ] 7 metric cards: Total Return %, Annualized Return %, Max Drawdown %, Sharpe Ratio, Sortino Ratio, Win Rate %, Profit Factor
-  - [ ] Color-coded: green (positive), red (negative)
+- [x] **23. Build Performance Cards row**
+  - [x] 7 metric cards: Total Return %, Annualized Return %, Max Drawdown %, Sharpe Ratio, Sortino Ratio, Win Rate %, Profit Factor
+  - [x] Color-coded: green (positive), red (negative)
 
-- [ ] **24. Build the Equity Curve chart**
-  - [ ] Lightweight Charts `LineSeries` for portfolio value over time
-  - [ ] Overlay benchmark line in contrasting color
-  - [ ] Crosshair with tooltip, responsive container
+- [x] **24. Build the Equity Curve chart**
+  - [x] Lightweight Charts `LineSeries` for portfolio value over time
+  - [x] Overlay benchmark line in contrasting color
+  - [x] Crosshair with tooltip, responsive container
 
-- [ ] **25. Build the Drawdown Chart**
-  - [ ] Lightweight Charts `AreaSeries` — red-filled area below zero
-  - [ ] Synced time axis with equity curve
+- [x] **25. Build the Drawdown Chart**
+  - [x] Lightweight Charts `AreaSeries` — red-filled area below zero
+  - [x] Synced time axis with equity curve
 
-- [ ] **26. Build the Monthly Returns Heatmap**
-  - [ ] Custom grid component (months × years)
-  - [ ] Green/red color gradient based on return value
-  - [ ] Tooltip with exact % on hover
+- [x] **26. Build the Monthly Returns Heatmap**
+  - [x] Custom grid component (months × years)
+  - [x] Green/red color gradient based on return value
+  - [x] Tooltip with exact % on hover
 
-- [ ] **27. Build the Trade Distribution histogram**
-  - [ ] Recharts `BarChart` — P&L buckets on X-axis, frequency on Y-axis
-  - [ ] Green bars for profit buckets, red for loss
+- [x] **27. Build the Trade Distribution histogram**
+  - [x] Recharts `BarChart` — P&L buckets on X-axis, frequency on Y-axis
+  - [x] Green bars for profit buckets, red for loss
 
-- [ ] **28. Build the Trade Log Table**
-  - [ ] shadcn `DataTable` (TanStack Table) with columns: Entry Date, Exit Date, Entry Price, Exit Price, P&L ($), P&L (%), Holding Days, Exit Reason
-  - [ ] Sortable columns, pagination, color-coded P&L
+- [x] **28. Build the Trade Log Table**
+  - [x] shadcn `DataTable` (TanStack Table) with columns: Entry Date, Exit Date, Entry Price, Exit Price, P&L ($), P&L (%), Holding Days, Exit Reason
+  - [x] Sortable columns, pagination, color-coded P&L
 
-- [ ] **29. Add "Save as Experiment" flow**
-  - [ ] shadcn `Dialog` with name input + tag input
-  - [ ] Server action to create/update Strategy + BacktestRun records
+- [x] **29. Add "Save as Experiment" flow**
+  - [x] shadcn `Dialog` with name input + tag input
+  - [x] Server action to create/update Strategy + BacktestRun records
 
 ---
 

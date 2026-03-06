@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { ReduxProvider } from "@/store/provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { getServerSession } from "@/lib/auth";
 
 const geistSans = Geist({
@@ -29,13 +31,22 @@ export default async function RootLayout({
   const session = await getServerSession();
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider session={session}>
-          {children}
-        </SessionProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SessionProvider session={session}>
+            <ReduxProvider>
+              {children}
+            </ReduxProvider>
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
