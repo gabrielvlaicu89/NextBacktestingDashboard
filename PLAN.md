@@ -226,16 +226,16 @@
 
 ## Phase 8 — Frontend UI — Workspace Dashboard
 
-- [ ] **30. Build the Workspace page**
-  - [ ] `app/dashboard/page.tsx` — strategy cards/table with key metrics + tags
-  - [ ] Sort controls (Sharpe, total return, date)
-  - [ ] Filter controls (strategy type, tags)
-  - [ ] Per-card actions: View Results, Duplicate, Delete, checkbox for comparison
-  - [ ] "New Backtest" CTA button
+- [x] **30. Build the Workspace page**
+  - [x] `app/dashboard/page.tsx` — strategy cards/table with key metrics + tags
+  - [x] Sort controls (Sharpe, total return, date)
+  - [x] Filter controls (strategy type, tags)
+  - [x] Per-card actions: View Results, Duplicate, Delete, checkbox for comparison
+  - [x] "New Backtest" CTA button
 
-- [ ] **31. Build the "Duplicate" flow**
-  - [ ] Copy strategy params into Redux store on "Duplicate" click
-  - [ ] Navigate to `/dashboard/new` with Strategy Builder pre-filled
+- [x] **31. Build the "Duplicate" flow**
+  - [x] Copy strategy params into Redux store on "Duplicate" click
+  - [x] Navigate to `/dashboard/new` with Strategy Builder pre-filled
 
 ---
 

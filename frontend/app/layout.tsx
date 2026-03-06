@@ -4,6 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { ReduxProvider } from "@/store/provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import { getServerSession } from "@/lib/auth";
 
 const geistSans = Geist({
@@ -44,6 +45,7 @@ export default async function RootLayout({
           <SessionProvider session={session}>
             <ReduxProvider>
               {children}
+              <Toaster richColors closeButton />
             </ReduxProvider>
           </SessionProvider>
         </ThemeProvider>
