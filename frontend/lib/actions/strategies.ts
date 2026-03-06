@@ -157,3 +157,28 @@ export async function deleteStrategy(id: string): Promise<void> {
   await prisma.strategy.delete({ where: { id } });
   revalidatePath("/dashboard");
 }
+
+export async function getStrategiesByIds(ids: string[]): Promise<StrategyWithRuns[]> {
+  if (ids.length === 0) return [];
+  const session = await getServerSession();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  const strategies = await prisma.strategy.findMany({
+    where: { id: { in: ids }, userId: session.user.id },
+    include: { runs: { orderBy: { createdAt: "desc" } } },
+  });
+
+  // Preserve the input ID order for stable rendering
+  const byId = Object.fromEntries(strategies.map((s) => [s.id, s]));
+  return ids
+    .map((id) => byId[id])
+    .filter(Boolean)
+    .map((s) => ({
+      ...serialiseStrategy(s),
+      runs: s.runs.map((r) => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+        results: r.results as StrategyWithRuns["runs"][number]["results"],
+      })),
+    }));
+}

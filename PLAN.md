@@ -241,18 +241,18 @@
 
 ## Phase 9 — Frontend UI — Comparison & Optimization
 
-- [ ] **32. Build the Strategy Comparison page**
-  - [ ] `app/dashboard/compare/page.tsx` — accepts `?ids=1,2,3` query params
-  - [ ] Comparison metrics table (rows = metrics, columns = strategies, highlight best value per row)
-  - [ ] Overlaid equity curves on a single Lightweight Charts instance (different colors per strategy)
-  - [ ] Legend with strategy names + colors
+- [x] **32. Build the Strategy Comparison page**
+  - [x] `app/dashboard/compare/page.tsx` — accepts `?ids=1,2,3` query params
+  - [x] Comparison metrics table (rows = metrics, columns = strategies, highlight best value per row)
+  - [x] Overlaid equity curves on a single Lightweight Charts instance (different colors per strategy)
+  - [x] Legend with strategy names + colors
 
-- [ ] **33. Build the Parameter Optimization page**
-  - [ ] `app/dashboard/optimize/[id]/page.tsx`
-  - [ ] Config form: min/max/step for each tunable param + metric to optimize for
-  - [ ] SSE progress indicator (current combo, % complete)
-  - [ ] Results heatmap (2 params → 2D color grid; 1 param → line chart; 3+ params → sortable table)
-  - [ ] Click cell/point → navigate to that run's full results
+- [x] **33. Build the Parameter Optimization page**
+  - [x] `app/dashboard/optimize/[id]/page.tsx`
+  - [x] Config form: min/max/step for each tunable param + metric to optimize for
+  - [x] SSE progress indicator (current combo, % complete)
+  - [x] Results heatmap (2 params → 2D color grid; 1 param → line chart; 3+ params → sortable table)
+  - [x] Click cell/point → navigate to that run's full results
 
 ---
 

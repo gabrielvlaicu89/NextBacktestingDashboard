@@ -150,3 +150,36 @@ export interface BacktestRunRecord {
 export interface StrategyWithRuns extends StrategyRecord {
   runs: BacktestRunRecord[];
 }
+
+// ── Optimization ─────────────────────────────────────────────────────────────
+
+export interface OptimizeResultEntry {
+  params: Record<string, number>;
+  metric: number | null;
+}
+
+export interface ParamRange {
+  min: number;
+  max: number;
+  step: number;
+}
+
+export interface OptimizeConfig {
+  strategy_type: string;
+  ticker: string;
+  date_from: string;
+  date_to: string;
+  benchmark: string;
+  risk_settings: RiskSettings;
+  fixed_parameters: Record<string, unknown>;
+  param_ranges: Record<string, ParamRange>;
+  optimize_for: string;
+}
+
+export const OPTIMIZE_METRICS: { value: string; label: string }[] = [
+  { value: "sharpe_ratio", label: "Sharpe Ratio" },
+  { value: "total_return_pct", label: "Total Return %" },
+  { value: "annualized_return_pct", label: "Annualized Return %" },
+  { value: "sortino_ratio", label: "Sortino Ratio" },
+  { value: "win_rate_pct", label: "Win Rate %" },
+];
