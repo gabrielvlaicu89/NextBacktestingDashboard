@@ -1,10 +1,14 @@
 """
 FastAPI backtesting microservice entry point.
 """
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import backtest, tickers, strategies
+
+# Load .env variables (ALPHA_VANTAGE_API_KEY, etc.) before any route handler uses them
+load_dotenv()
 
 app = FastAPI(
     title="Backtester API",

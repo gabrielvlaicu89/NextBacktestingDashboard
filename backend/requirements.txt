@@ -10,3 +10,9 @@ python-dotenv>=1.0.0
 httpx>=0.28.0
 loguru>=0.7.0
 alpha-vantage>=3.0.0
+
+# Dev / testing
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
+black>=24.0.0
+flake8>=7.0.0

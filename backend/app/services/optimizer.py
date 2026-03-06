@@ -9,8 +9,9 @@ from typing import AsyncGenerator
 import numpy as np
 
 from app.engine.base import get_strategy
-from app.models.schemas import OptimizeRequest
-from app.services.data_fetcher import fetch_ohlcv
+from app.engine.pairs_trading import PairsTradingStrategy
+from app.models.schemas import OptimizeRequest, StrategyType
+from app.services.data_fetcher import fetch_ohlcv, fetch_earnings
 from app.services.metrics import compute_metrics
 
 
@@ -45,6 +46,19 @@ async def run_grid_search(request: OptimizeRequest) -> AsyncGenerator[str, None]
         yield _sse("error", message=str(exc))
         return
 
+    # ── Strategy-specific pre-fetching ─────────────────────────────────────────
+    df_b = None
+    if request.strategy_type == StrategyType.EARNINGS_DRIFT:
+        earnings_data = await asyncio.to_thread(fetch_earnings, request.ticker)
+        request.fixed_parameters["_earnings_data"] = earnings_data
+
+    if request.strategy_type == StrategyType.PAIRS_TRADING:
+        ticker_b = request.fixed_parameters.get("ticker_b")
+        if ticker_b:
+            df_b = await asyncio.to_thread(
+                fetch_ohlcv, ticker_b, request.date_from, request.date_to
+            )
+
     results = []
 
     for idx, combo in enumerate(combinations):
@@ -52,6 +66,8 @@ async def run_grid_search(request: OptimizeRequest) -> AsyncGenerator[str, None]
 
         try:
             strategy = get_strategy(request.strategy_type, params, request.risk_settings)
+            if isinstance(strategy, PairsTradingStrategy) and df_b is not None:
+                strategy.set_df_b(df_b)
             trades, equity_curve = await asyncio.to_thread(
                 strategy.run, df, request.risk_settings.starting_capital
             )

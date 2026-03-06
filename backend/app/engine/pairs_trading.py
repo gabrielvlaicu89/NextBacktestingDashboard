@@ -1,4 +1,4 @@
-"""Pairs Trading strategy — spread Z-score with Engle-Granger cointegration test."""
+"""Pairs Trading strategy — spread Z-score mean reversion."""
 from __future__ import annotations
 
 from typing import Any
@@ -9,14 +9,13 @@ from scipy import stats
 
 from app.engine.base import Strategy
 from app.models.schemas import RiskSettings
-from app.services.data_fetcher import fetch_ohlcv
 
 
 class PairsTradingStrategy(Strategy):
     """
     Trades the spread between ticker A (primary) and ticker B.
-    Entry when spread Z-score exceeds threshold; exit when it reverts to mean.
-    Includes Engle-Granger cointegration test gating.
+    Goes long on A when the spread Z-score drops below -threshold (A is cheap
+    relative to B), and exits when the spread reverts toward the mean.
     """
 
     def __init__(self, params: dict[str, Any], risk: RiskSettings) -> None:
@@ -24,6 +23,7 @@ class PairsTradingStrategy(Strategy):
         self._df_b: pd.DataFrame | None = None
 
     def set_df_b(self, df_b: pd.DataFrame) -> None:
+        """Inject ticker B's OHLCV DataFrame before running the strategy."""
         self._df_b = df_b
 
     def generate_signals(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -36,8 +36,15 @@ class PairsTradingStrategy(Strategy):
         close_a = df["Close"]
         close_b = self._df_b["Close"].reindex(df.index).ffill()
 
-        # Compute hedge ratio via OLS residuals
-        slope, intercept, *_ = stats.linregress(close_b, close_a)
+        # Drop rows where either series is NaN before OLS
+        valid = close_a.notna() & close_b.notna()
+        if valid.sum() < window:
+            df["signal"] = 0
+            return df
+
+        slope, intercept, *_ = stats.linregress(
+            close_b[valid], close_a[valid]
+        )
         spread = close_a - (slope * close_b + intercept)
 
         rolling_mean = spread.rolling(window).mean()
@@ -53,14 +60,11 @@ class PairsTradingStrategy(Strategy):
                 continue
             if not in_trade:
                 if z < -threshold:
-                    df.iloc[i, df.columns.get_loc("signal")] = 1   # spread fallen — buy
-                    in_trade = True
-                elif z > threshold:
-                    df.iloc[i, df.columns.get_loc("signal")] = -1  # spread risen — short (signal only)
+                    df.iloc[i, df.columns.get_loc("signal")] = 1   # spread low → buy A
                     in_trade = True
             else:
-                if abs(z) < 0.5:                                    # reverted to mean
-                    df.iloc[i, df.columns.get_loc("signal")] = -1 if in_trade else 1
+                if z > -0.5:
+                    df.iloc[i, df.columns.get_loc("signal")] = -1  # reverted → sell A
                     in_trade = False
 
         return df

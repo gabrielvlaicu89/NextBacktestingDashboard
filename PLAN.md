@@ -63,55 +63,56 @@
 
 ---
 
-## Phase 3 — Python Backtesting Engine
+## Phase 3 — Python Backtesting Engine ✅
 
-- [ ] **8. Build the data fetching layer**
-  - [ ] `services/data_fetcher.py`: `yfinance.download()` wrapper returning clean OHLCV DataFrames
-  - [ ] Handle ticker validation, date range checks, missing data
-  - [ ] In-memory caching to avoid redundant fetches during optimization
-  - [ ] Alpha Vantage client for earnings/EPS data (PEAD strategy)
+- [x] **8. Build the data fetching layer**
+  - [x] `services/data_fetcher.py`: `yfinance.download()` wrapper returning clean OHLCV DataFrames
+  - [x] Handle ticker validation, date range checks, missing data
+  - [x] In-memory caching to avoid redundant fetches during optimization (`lru_cache`)
+  - [x] Alpha Vantage client for earnings/EPS data (`fetch_earnings` via httpx)
 
-- [ ] **9. Build the abstract strategy engine**
-  - [ ] `engine/base.py`: abstract `Strategy` class with:
-    - [ ] `generate_signals(df) -> DataFrame` — adds `signal` column (+1 buy, -1 sell, 0 hold)
-    - [ ] `execute_trades(df, capital) -> list[Trade]` — simulates portfolio with stop-loss/take-profit
-  - [ ] `Trade` dataclass: entry_date, exit_date, entry_price, exit_price, pnl, pnl_pct, holding_days, exit_reason
+- [x] **9. Build the abstract strategy engine**
+  - [x] `engine/base.py`: abstract `Strategy` class with:
+    - [x] `generate_signals(df) -> DataFrame` — adds `signal` column (+1 buy, -1 sell, 0 hold)
+    - [x] `execute_trades(df, capital) -> list[Trade]` — simulates portfolio with stop-loss/take-profit
+  - [x] `Trade` dataclass: entry_date, exit_date, entry_price, exit_price, pnl, pnl_pct, holding_days, exit_reason
 
-- [ ] **10. Implement all 5 strategies**
-  - [ ] **Mean Reversion** — Z-score over rolling window; buy Z < -threshold, sell Z > +threshold or after holding period
-  - [ ] **MA Crossover** — Fast/slow SMA or EMA; buy golden cross, sell death cross
-  - [ ] **Earnings Drift (PEAD)** — Trade around earnings dates; filter by EPS surprise threshold
-  - [ ] **Pairs Trading** — Two-ticker spread; rolling correlation + Engle-Granger cointegration; trade spread deviations
-  - [ ] **Buy & Hold** — Enter day 1, exit last day; pure benchmark
+- [x] **10. Implement all 5 strategies**
+  - [x] **Mean Reversion** — Z-score over rolling window; buy Z < -threshold, sell Z > +threshold or after holding period
+  - [x] **MA Crossover** — Fast/slow SMA or EMA; buy golden cross, sell death cross
+  - [x] **Earnings Drift (PEAD)** — Trade around earnings dates; filter by EPS surprise threshold; Alpha Vantage data injected by router
+  - [x] **Pairs Trading** — Two-ticker spread; OLS hedge ratio; long-only on spread dip; router injects ticker B data
+  - [x] **Buy & Hold** — Enter day 1, exit last day; pure benchmark
 
-- [ ] **11. Build the metrics calculator**
-  - [ ] `services/metrics.py` computing from trade list + equity curve:
-    - [ ] Total Return %, Annualized Return %
-    - [ ] Max Drawdown % (+ drawdown time series for charting)
-    - [ ] Sharpe Ratio, Sortino Ratio
-    - [ ] Win Rate %, Profit Factor
-    - [ ] Monthly returns matrix (for heatmap)
+- [x] **11. Build the metrics calculator**
+  - [x] `services/metrics.py` computing from trade list + equity curve:
+    - [x] Total Return %, Annualized Return %
+    - [x] Max Drawdown % (+ drawdown time series for charting)
+    - [x] Sharpe Ratio, Sortino Ratio
+    - [x] Win Rate %, Profit Factor
+    - [x] Monthly returns matrix (for heatmap)
 
-- [ ] **12. Build the grid search optimizer**
-  - [ ] `services/optimizer.py`: generate all param combinations via `itertools.product`
-  - [ ] Run each combination through backtest engine
-  - [ ] Return results matrix (param combos → metric values) for heatmap rendering
-  - [ ] Yield SSE progress events (% complete, current params)
+- [x] **12. Build the grid search optimizer**
+  - [x] `services/optimizer.py`: generate all param combinations via `itertools.product`
+  - [x] Run each combination through backtest engine
+  - [x] Return results matrix (param combos → metric values) for heatmap rendering
+  - [x] Yield SSE progress events (% complete, current params)
+  - [x] Strategy-specific pre-fetching (earnings data, pairs ticker B)
 
-- [ ] **13. Build FastAPI endpoints**
-  - [ ] `POST /api/backtest/run` — accepts strategy config, runs backtest, streams results via SSE
-  - [ ] `GET /api/backtest/stream/{job_id}` — SSE progress stream endpoint
-  - [ ] `GET /api/tickers/search?q={query}` — Yahoo Finance ticker autocomplete proxy
-  - [ ] `GET /api/strategies/types` — returns strategy types + parameter schemas (for dynamic form)
-  - [ ] `POST /api/backtest/optimize` — triggers grid search, streams progress via SSE
-  - [ ] CORS middleware configured for Next.js frontend origin
-  - [ ] Global error handling middleware
-  - [ ] `GET /health` — health check endpoint
+- [x] **13. Build FastAPI endpoints**
+  - [x] `POST /api/backtest/run` — accepts strategy config, runs backtest, streams results via SSE
+  - [x] `GET /api/tickers/search?q={query}` — Yahoo Finance ticker autocomplete proxy
+  - [x] `GET /api/strategies/types` — returns strategy types + parameter schemas (for dynamic form)
+  - [x] `POST /api/backtest/optimize` — triggers grid search, streams progress via SSE
+  - [x] CORS middleware configured for Next.js frontend origin
+  - [x] Global error handling (SSE error events with structured JSON)
+  - [x] `GET /health` — health check endpoint
+  - [x] `dotenv` loading for `ALPHA_VANTAGE_API_KEY`
 
-- [ ] **14. Write backend tests**
-  - [ ] Unit tests for each strategy with known/synthetic data
-  - [ ] Unit tests for metrics calculations (verify against hand-computed values)
-  - [ ] Integration test: full backtest run for SPY mean reversion
+- [x] **14. Write backend tests**
+  - [x] Unit tests for each strategy with synthetic data (buy_and_hold, mean_reversion, ma_crossover, earnings_drift, pairs_trading)
+  - [x] Unit tests for metrics calculations (verify against hand-computed values)
+  - [x] Integration test: full backtest run via FastAPI TestClient (mocked data fetcher)
 
 ---
 
