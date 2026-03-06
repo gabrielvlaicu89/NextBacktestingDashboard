@@ -24,11 +24,11 @@
   - [x] Add `Dockerfile` for backend
 
 - [x] **4. Set up Supabase + Prisma**
-  - [ ] Create Supabase project and copy connection string ← **waiting on credentials**
+  - [x] Create Supabase project and copy connection string
   - [x] `npx prisma init` in `/frontend`
   - [x] Define `prisma/schema.prisma` with all models (User, Account, Session, Strategy, BacktestRun)
-  - [ ] `npx prisma migrate dev` to create tables ← **waiting on credentials**
-  - [ ] `npx prisma generate` to generate client ← **waiting on credentials**
+  - [x] `npx prisma migrate dev` to create tables
+  - [x] `npx prisma generate` to generate client
 
 - [x] **5. Configure environment variables**
   - [x] `/frontend/.env.local`: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `BACKEND_URL`
@@ -39,19 +39,27 @@
 
 ---
 
-## Phase 2 — Authentication
+## Phase 2 — Authentication ✅
 
-- [ ] **6. Set up NextAuth.js with Google provider**
-  - [ ] Create `app/api/auth/[...nextauth]/route.ts`
-  - [ ] Configure Google OAuth provider
-  - [ ] Install and wire up `@auth/prisma-adapter`
-  - [ ] Create `lib/auth.ts` with `getServerSession` helper
-  - [ ] Create `middleware.ts` to protect `/dashboard/*` routes
+- [x] **6. Set up NextAuth.js with Google provider**
+  - [x] Create `app/api/auth/[...nextauth]/route.ts`
+  - [x] Configure Google OAuth provider
+  - [x] Install and wire up `@next-auth/prisma-adapter` (v4 adapter)
+  - [x] Create `lib/auth.ts` with `getServerSession` helper + `authOptions`
+  - [x] Create `lib/prisma.ts` PrismaClient singleton
+  - [x] Create `types/next-auth.d.ts` — extend Session with `user.id`
+  - [x] Create `components/providers/session-provider.tsx` — client SessionProvider wrapper
+  - [x] Create `proxy.ts` to protect `/dashboard/*` routes (Next.js 16: renamed from `middleware.ts`)
+  - [x] Fill in `.env.local` credentials
+  - [x] Run `npx prisma migrate dev` + `npx prisma generate`
 
-- [ ] **7. Build auth pages**
-  - [ ] `app/(auth)/login/page.tsx` — "Sign in with Google" button
-  - [ ] `app/(auth)/layout.tsx` — minimal centered card layout
-  - [ ] Redirect authenticated users from `/` and `/login` → `/dashboard`
+- [x] **7. Build auth pages**
+  - [x] `app/(auth)/login/page.tsx` — "Sign in with Google" button (via `LoginCard` client component)
+  - [x] `app/(auth)/layout.tsx` — minimal centered card layout
+  - [x] `components/auth/login-card.tsx` — Google OAuth button with inline SVG logo
+  - [x] Redirect authenticated users from `/` and `/login` → `/dashboard`
+  - [x] `app/dashboard/page.tsx` — placeholder dashboard (Phase 5 will replace this)
+  - [x] Root `app/layout.tsx` updated — wraps app with `SessionProvider` (session pre-fetched server-side)
 
 ---
 
