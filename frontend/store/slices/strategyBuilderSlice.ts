@@ -6,13 +6,22 @@
  */
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type {
+  ComparisonOperator,
+  BuiltInStrategyType,
+  ConstantOperand,
+  CustomRuleSection,
   CustomStrategyDefinition,
+  IndicatorOperand,
   IndicatorNode,
   IndicatorParamValue,
+  PriceOperand,
   RiskSettings,
+  RuleCondition,
   RuleGroup,
+  RuleNode,
+  RuleNodePath,
+  RuleOperand,
   StrategyBuilderMode,
-  StrategyType,
 } from "@/lib/types";
 import { DEFAULT_RISK_SETTINGS } from "@/lib/types";
 
@@ -24,6 +33,79 @@ function createEmptyRuleGroup(): RuleGroup {
     operator: "AND",
     conditions: [],
   };
+}
+
+function createDefaultPriceOperand(): PriceOperand {
+  return {
+    kind: "price",
+    field: "CLOSE",
+  };
+}
+
+function createDefaultConstantOperand(): ConstantOperand {
+  return {
+    kind: "constant",
+    value: 0,
+  };
+}
+
+function createDefaultIndicatorOperand(indicatorId?: string): IndicatorOperand {
+  return {
+    kind: "indicator",
+    indicatorId: indicatorId ?? "",
+  };
+}
+
+function createEmptyRuleCondition(primaryIndicatorId?: string): RuleCondition {
+  return {
+    type: "condition",
+    left: primaryIndicatorId
+      ? createDefaultIndicatorOperand(primaryIndicatorId)
+      : createDefaultPriceOperand(),
+    comparator: ">",
+    right: createDefaultConstantOperand(),
+  };
+}
+
+function getRuleGroup(state: StrategyBuilderState, section: CustomRuleSection): RuleGroup {
+  return state.customStrategy[section];
+}
+
+function getRuleNodeAtPath(
+  group: RuleGroup,
+  path: RuleNodePath,
+): RuleNode | undefined {
+  let current: RuleNode = group;
+
+  for (const index of path) {
+    if (current.type !== "group") {
+      return undefined;
+    }
+
+    current = current.conditions[index];
+    if (!current) {
+      return undefined;
+    }
+  }
+
+  return current;
+}
+
+function getRuleGroupAtPath(
+  group: RuleGroup,
+  path: RuleNodePath = [],
+): RuleGroup | undefined {
+  const node = getRuleNodeAtPath(group, path);
+  return node?.type === "group" ? node : undefined;
+}
+
+function getParentRuleGroupAtPath(
+  group: RuleGroup,
+  path: RuleNodePath,
+): RuleGroup | undefined {
+  return path.length === 0
+    ? undefined
+    : getRuleGroupAtPath(group, path.slice(0, -1));
 }
 
 export function createEmptyCustomStrategyDraft(): CustomStrategyDefinition {
@@ -68,7 +150,7 @@ export interface StrategyBuilderState {
   dateFrom: string;
   dateTo: string;
   builderMode: StrategyBuilderMode;
-  strategyType: StrategyType | null;
+  strategyType: BuiltInStrategyType | null;
   parameters: Record<string, unknown>;
   customStrategy: CustomStrategyDefinition;
   riskSettings: RiskSettings;
@@ -93,7 +175,7 @@ const strategyBuilderSlice = createSlice({
     setBuilderMode(state, action: PayloadAction<StrategyBuilderMode>) {
       state.builderMode = action.payload;
     },
-    setStrategyType(state, action: PayloadAction<StrategyType>) {
+    setStrategyType(state, action: PayloadAction<BuiltInStrategyType>) {
       state.builderMode = "BUILT_IN";
       state.strategyType = action.payload;
       state.parameters = {}; // reset params when type changes
@@ -148,6 +230,105 @@ const strategyBuilderSlice = createSlice({
         (indicator) => indicator.id !== action.payload,
       );
     },
+    updateCustomRuleGroupOperator(
+      state,
+      action: PayloadAction<{
+        section: CustomRuleSection;
+        path?: RuleNodePath;
+        operator: RuleGroup["operator"];
+      }>,
+    ) {
+      state.builderMode = "CUSTOM";
+      const group = getRuleGroupAtPath(
+        getRuleGroup(state, action.payload.section),
+        action.payload.path ?? [],
+      );
+
+      if (group) {
+        group.operator = action.payload.operator;
+      }
+    },
+    addCustomRuleCondition(
+      state,
+      action: PayloadAction<{ section: CustomRuleSection; path?: RuleNodePath }>,
+    ) {
+      state.builderMode = "CUSTOM";
+      const primaryIndicatorId = state.customStrategy.indicators[0]?.id;
+      const group = getRuleGroupAtPath(
+        getRuleGroup(state, action.payload.section),
+        action.payload.path ?? [],
+      );
+
+      if (group) {
+        group.conditions.push(createEmptyRuleCondition(primaryIndicatorId));
+      }
+    },
+    addCustomRuleGroup(
+      state,
+      action: PayloadAction<{ section: CustomRuleSection; path?: RuleNodePath }>,
+    ) {
+      state.builderMode = "CUSTOM";
+      const group = getRuleGroupAtPath(
+        getRuleGroup(state, action.payload.section),
+        action.payload.path ?? [],
+      );
+
+      if (group) {
+        group.conditions.push(createEmptyRuleGroup());
+      }
+    },
+    updateCustomRuleConditionComparator(
+      state,
+      action: PayloadAction<{
+        section: CustomRuleSection;
+        path: RuleNodePath;
+        comparator: ComparisonOperator;
+      }>,
+    ) {
+      state.builderMode = "CUSTOM";
+      const condition = getRuleNodeAtPath(
+        getRuleGroup(state, action.payload.section),
+        action.payload.path,
+      );
+
+      if (condition?.type === "condition") {
+        condition.comparator = action.payload.comparator;
+      }
+    },
+    updateCustomRuleConditionOperand(
+      state,
+      action: PayloadAction<{
+        section: CustomRuleSection;
+        path: RuleNodePath;
+        side: "left" | "right";
+        operand: RuleOperand;
+      }>,
+    ) {
+      state.builderMode = "CUSTOM";
+      const condition = getRuleNodeAtPath(
+        getRuleGroup(state, action.payload.section),
+        action.payload.path,
+      );
+
+      if (condition?.type === "condition") {
+        condition[action.payload.side] = action.payload.operand;
+      }
+    },
+    removeCustomRuleNode(
+      state,
+      action: PayloadAction<{ section: CustomRuleSection; path: RuleNodePath }>,
+    ) {
+      state.builderMode = "CUSTOM";
+      const parentGroup = getParentRuleGroupAtPath(
+        getRuleGroup(state, action.payload.section),
+        action.payload.path,
+      );
+      const targetIndex = action.payload.path.at(-1);
+
+      if (parentGroup && targetIndex !== undefined) {
+        parentGroup.conditions.splice(targetIndex, 1);
+      }
+    },
     setParameter(state, action: PayloadAction<{ key: string; value: unknown }>) {
       state.parameters[action.payload.key] = action.payload.value;
     },
@@ -173,7 +354,7 @@ const strategyBuilderSlice = createSlice({
         ticker: string;
         dateFrom: string;
         dateTo: string;
-        strategyType: StrategyType;
+        strategyType: BuiltInStrategyType;
         parameters: Record<string, unknown>;
         riskSettings: RiskSettings;
         benchmark: string;
@@ -204,6 +385,12 @@ export const {
   updateCustomIndicatorLabel,
   updateCustomIndicatorParam,
   removeCustomIndicator,
+  updateCustomRuleGroupOperator,
+  addCustomRuleCondition,
+  addCustomRuleGroup,
+  updateCustomRuleConditionComparator,
+  updateCustomRuleConditionOperand,
+  removeCustomRuleNode,
   setParameter,
   setParameters,
   setRiskSettings,

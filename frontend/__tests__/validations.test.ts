@@ -12,6 +12,7 @@ import {
   strategyBuilderModeSchema,
   updateCustomStrategyDefinitionSchema,
   updateStrategySchema,
+  validateCustomStrategyBuilderDraft,
 } from "@/lib/validations";
 
 describe("riskSettingsSchema", () => {
@@ -396,6 +397,125 @@ describe("customStrategyDraftSchema", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe("validateCustomStrategyBuilderDraft", () => {
+  it("keeps empty rule groups saveable while drafting", () => {
+    const issues = validateCustomStrategyBuilderDraft({
+      version: 1,
+      name: "Draft Strategy",
+      description: "Still being built.",
+      indicators: [],
+      longEntry: { type: "group", operator: "AND", conditions: [] },
+      longExit: { type: "group", operator: "AND", conditions: [] },
+      shortEntry: { type: "group", operator: "AND", conditions: [] },
+      shortExit: { type: "group", operator: "AND", conditions: [] },
+    });
+
+    expect(issues).toEqual([]);
+  });
+
+  it("returns section-aware issues for malformed rule operands", () => {
+    const issues = validateCustomStrategyBuilderDraft({
+      version: 1,
+      name: "Broken Draft",
+      description: "",
+      indicators: [],
+      longEntry: {
+        type: "group",
+        operator: "AND",
+        conditions: [
+          {
+            type: "condition",
+            left: { kind: "indicator", indicatorId: "" },
+            comparator: ">",
+            right: { kind: "constant", value: 1 },
+          },
+        ],
+      },
+      longExit: { type: "group", operator: "AND", conditions: [] },
+      shortEntry: { type: "group", operator: "AND", conditions: [] },
+      shortExit: { type: "group", operator: "AND", conditions: [] },
+    });
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          section: "longEntry",
+          conditionIndex: 0,
+          message: "Select an indicator for this operand.",
+        }),
+      ]),
+    );
+  });
+
+  it("returns section-aware issues for missing indicator references", () => {
+    const issues = validateCustomStrategyBuilderDraft({
+      version: 1,
+      name: "Broken Draft",
+      description: "",
+      indicators: [],
+      longEntry: {
+        type: "group",
+        operator: "AND",
+        conditions: [
+          {
+            type: "condition",
+            left: { kind: "indicator", indicatorId: "ghost-indicator" },
+            comparator: ">",
+            right: { kind: "constant", value: 1 },
+          },
+        ],
+      },
+      longExit: { type: "group", operator: "AND", conditions: [] },
+      shortEntry: { type: "group", operator: "AND", conditions: [] },
+      shortExit: { type: "group", operator: "AND", conditions: [] },
+    });
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          section: "longEntry",
+          conditionIndex: 0,
+          message: "This condition references missing indicator 'ghost-indicator'.",
+        }),
+      ]),
+    );
+  });
+
+  it("rejects empty nested groups that were added but never completed", () => {
+    const issues = validateCustomStrategyBuilderDraft({
+      version: 1,
+      name: "Nested Draft",
+      description: "",
+      indicators: [],
+      longEntry: {
+        type: "group",
+        operator: "AND",
+        conditions: [
+          {
+            type: "group",
+            operator: "OR",
+            conditions: [],
+          },
+        ],
+      },
+      longExit: { type: "group", operator: "AND", conditions: [] },
+      shortEntry: { type: "group", operator: "AND", conditions: [] },
+      shortExit: { type: "group", operator: "AND", conditions: [] },
+    });
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          section: "longEntry",
+          conditionIndex: undefined,
+          path: ["longEntry", "conditions", 0, "conditions"],
+          message: "Add at least one condition or remove this empty group.",
+        }),
+      ]),
+    );
   });
 });
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { SavedCustomStrategiesSection } from "@/components/custom-strategy/saved-custom-strategies-section";
+import { renderWithStore } from "@/__tests__/helpers/render-with-store";
 import type { CustomStrategyDefinitionRecord } from "@/lib/types";
 
 vi.mock("next/link", () => ({
@@ -42,7 +43,7 @@ const savedDefinition: CustomStrategyDefinitionRecord = {
 
 describe("SavedCustomStrategiesSection", () => {
   it("renders the section heading and build link", () => {
-    render(<SavedCustomStrategiesSection definitions={[]} />);
+    renderWithStore(<SavedCustomStrategiesSection definitions={[]} />);
 
     expect(screen.getByText("Saved Custom Strategies")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Build Custom Stratergy/i })).toHaveAttribute(
@@ -52,16 +53,19 @@ describe("SavedCustomStrategiesSection", () => {
   });
 
   it("renders an empty state when no definitions exist", () => {
-    render(<SavedCustomStrategiesSection definitions={[]} />);
+    renderWithStore(<SavedCustomStrategiesSection definitions={[]} />);
 
     expect(screen.getByText("No saved custom strategies yet")).toBeInTheDocument();
   });
 
-  it("renders saved definitions with edit links", () => {
-    render(<SavedCustomStrategiesSection definitions={[savedDefinition]} />);
+  it("renders saved definitions with launch and edit actions", () => {
+    renderWithStore(<SavedCustomStrategiesSection definitions={[savedDefinition]} />);
 
     expect(screen.getByTestId("saved-custom-card-custom-1")).toBeInTheDocument();
     expect(screen.getByText("RSI Draft")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("launch-custom-strategy-custom-1"),
+    ).toHaveTextContent("Review Runtime Config");
     expect(screen.getByRole("link", { name: /Edit Draft/i })).toHaveAttribute(
       "href",
       "/dashboard/build-custom-stratergy?id=custom-1",

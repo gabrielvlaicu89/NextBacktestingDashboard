@@ -47,6 +47,7 @@ const STRATEGY_TYPE_OPTIONS: {
   { value: "EARNINGS_DRIFT", label: "Earnings Drift" },
   { value: "PAIRS_TRADING", label: "Pairs Trading" },
   { value: "BUY_AND_HOLD", label: "Buy & Hold" },
+  { value: "CUSTOM", label: "Custom Strategy" },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────

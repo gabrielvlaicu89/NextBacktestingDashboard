@@ -28,6 +28,39 @@ import { toast } from "sonner";
 const mockDeleteStrategy = vi.mocked(deleteStrategy);
 const mockToast = vi.mocked(toast);
 
+const customDefinition = {
+  version: 1 as const,
+  name: "Custom Momentum",
+  description: "Custom long-only definition.",
+  indicators: [],
+  longEntry: {
+    type: "group" as const,
+    operator: "AND" as const,
+    conditions: [
+      {
+        type: "condition" as const,
+        left: { kind: "price" as const, field: "CLOSE" as const },
+        comparator: ">" as const,
+        right: { kind: "constant" as const, value: 100 },
+      },
+    ],
+  },
+  longExit: {
+    type: "group" as const,
+    operator: "AND" as const,
+    conditions: [
+      {
+        type: "condition" as const,
+        left: { kind: "price" as const, field: "CLOSE" as const },
+        comparator: "<" as const,
+        right: { kind: "constant" as const, value: 99 },
+      },
+    ],
+  },
+  shortEntry: { type: "group" as const, operator: "AND" as const, conditions: [] },
+  shortExit: { type: "group" as const, operator: "AND" as const, conditions: [] },
+};
+
 // ── Test Data ─────────────────────────────────────────────────────────────────
 
 const fakeMetrics: BacktestResponse["metrics"] = {
@@ -86,6 +119,26 @@ const strategyNoRuns: StrategyWithRuns = {
   name: "No Runs Strategy",
   runs: [],
   tags: [],
+};
+
+const customStrategy: StrategyWithRuns = {
+  ...fakeStrategy,
+  id: "custom-1",
+  name: "Custom Momentum",
+  type: "CUSTOM",
+  ticker: "QQQ",
+  benchmark: "SPY",
+  dateFrom: "2021-01-01T00:00:00.000Z",
+  dateTo: "2023-01-01T00:00:00.000Z",
+  parameters: { custom_definition: customDefinition },
+  riskSettings: {
+    starting_capital: 25000,
+    position_sizing_mode: "FIXED_DOLLAR",
+    position_size: 5000,
+    stop_loss_pct: 5,
+    take_profit_pct: 15,
+  },
+  tags: ["custom", "swing"],
 };
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -157,6 +210,55 @@ describe("StrategyCard", () => {
     expect(builderState.ticker).toBe("SPY");
     expect(builderState.name).toBe("SPY Mean Reversion (Copy)");
     expect(builderState.strategyType).toBe("MEAN_REVERSION");
+  });
+
+  it("duplicates custom strategies with runtime fields and draft snapshot intact", async () => {
+    const { store } = renderWithStore(<StrategyCard strategy={customStrategy} />, {
+      preloadedState: {
+        strategyBuilder: {
+          ticker: "OLD",
+          dateFrom: "2018-01-01",
+          dateTo: "2019-01-01",
+          builderMode: "BUILT_IN",
+          strategyType: "BUY_AND_HOLD",
+          parameters: { stale: true },
+          customStrategy: {
+            version: 1,
+            name: "",
+            description: "",
+            indicators: [],
+            longEntry: { type: "group", operator: "AND", conditions: [] },
+            longExit: { type: "group", operator: "AND", conditions: [] },
+            shortEntry: { type: "group", operator: "AND", conditions: [] },
+            shortExit: { type: "group", operator: "AND", conditions: [] },
+          },
+          riskSettings: {
+            starting_capital: 10000,
+            position_sizing_mode: "PERCENT_PORTFOLIO",
+            position_size: 100,
+            stop_loss_pct: null,
+            take_profit_pct: null,
+          },
+          benchmark: "QQQ",
+          name: "Stale",
+          tags: [],
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByText("Duplicate"));
+
+    const builderState = store.getState().strategyBuilder;
+    expect(mockPush).toHaveBeenCalledWith("/dashboard/new");
+    expect(builderState.builderMode).toBe("CUSTOM");
+    expect(builderState.ticker).toBe("QQQ");
+    expect(builderState.dateFrom).toBe("2021-01-01T00:00:00.000Z");
+    expect(builderState.dateTo).toBe("2023-01-01T00:00:00.000Z");
+    expect(builderState.benchmark).toBe("SPY");
+    expect(builderState.riskSettings).toEqual(customStrategy.riskSettings);
+    expect(builderState.customStrategy).toEqual(customDefinition);
+    expect(builderState.name).toBe("Custom Momentum (Copy)");
+    expect(builderState.tags).toEqual(["custom", "swing"]);
   });
 
   it("shows delete confirmation dialog", async () => {

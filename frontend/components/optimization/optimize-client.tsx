@@ -22,14 +22,17 @@ import { OptimizeProgress } from "@/components/optimization/optimize-progress";
 import { OptimizeResults } from "@/components/optimization/optimize-results";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
-import type { OptimizeConfig, StrategyWithRuns } from "@/lib/types";
+import type { BuiltInStrategyType, OptimizeConfig, StrategyWithRuns } from "@/lib/types";
 import type { StrategyCatalogItem } from "@/lib/types";
-import type { StrategyType } from "@/lib/types";
+
+interface OptimizableStrategy extends StrategyWithRuns {
+  type: BuiltInStrategyType;
+}
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface OptimizeClientProps {
-  strategy: StrategyWithRuns;
+  strategy: OptimizableStrategy;
   catalog: StrategyCatalogItem;
 }
 
@@ -60,7 +63,7 @@ export function OptimizeClient({ strategy, catalog }: OptimizeClientProps) {
           ticker: strategy.ticker,
           dateFrom: strategy.dateFrom,
           dateTo: strategy.dateTo,
-          strategyType: strategy.type as StrategyType,
+          strategyType: strategy.type,
           parameters: params,
           riskSettings: strategy.riskSettings,
           benchmark: strategy.benchmark,

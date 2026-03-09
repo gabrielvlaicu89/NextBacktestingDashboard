@@ -11,7 +11,7 @@ import { Sparkles } from "lucide-react";
 import { useAppDispatch } from "@/store/hooks";
 import { prefillFromStrategy } from "@/store/slices/strategyBuilderSlice";
 import { DEFAULT_RISK_SETTINGS } from "@/lib/types";
-import type { StrategyType, RiskSettings } from "@/lib/types";
+import type { BuiltInStrategyType, RiskSettings } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +28,7 @@ export interface StrategyTemplate {
   ticker: string;
   dateFrom: string;
   dateTo: string;
-  strategyType: StrategyType;
+  strategyType: BuiltInStrategyType;
   parameters: Record<string, unknown>;
   riskSettings: RiskSettings;
   benchmark: string;

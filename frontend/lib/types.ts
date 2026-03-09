@@ -5,12 +5,14 @@
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
-export type StrategyType =
+export type BuiltInStrategyType =
   | "MEAN_REVERSION"
   | "MA_CROSSOVER"
   | "EARNINGS_DRIFT"
   | "PAIRS_TRADING"
   | "BUY_AND_HOLD";
+
+export type StrategyType = BuiltInStrategyType | "CUSTOM";
 
 export type StrategyBuilderMode = "BUILT_IN" | "CUSTOM";
 
@@ -106,6 +108,20 @@ export interface RuleGroup {
 }
 
 export type RuleNode = RuleCondition | RuleGroup;
+export type RuleNodePath = number[];
+
+export type CustomRuleSection =
+  | "longEntry"
+  | "longExit"
+  | "shortEntry"
+  | "shortExit";
+
+export interface CustomStrategyValidationIssue {
+  path: Array<string | number>;
+  message: string;
+  section?: CustomRuleSection;
+  conditionIndex?: number;
+}
 
 export interface CustomStrategyDefinition {
   version: CustomStrategyDefinitionVersion;
@@ -226,7 +242,7 @@ export interface StrategyParam {
 }
 
 export interface StrategyCatalogItem {
-  type: StrategyType;
+  type: BuiltInStrategyType;
   label: string;
   description: string;
   params: StrategyParam[];

@@ -14,23 +14,15 @@ export default async function BuildCustomStrategyPage({
 }: BuildCustomStrategyPageProps) {
   const { id } = await searchParams;
 
-  let definitions: CustomStrategyDefinitionRecord[] = [];
-  try {
-    definitions = await getCustomStrategyDefinitions();
-  } catch {
-    definitions = [];
-  }
+  const definitions: CustomStrategyDefinitionRecord[] =
+    await getCustomStrategyDefinitions();
 
   let initialDefinition: CustomStrategyDefinitionRecord | null = null;
   if (id) {
     initialDefinition = definitions.find((definition) => definition.id === id) ?? null;
 
     if (!initialDefinition) {
-      try {
-        initialDefinition = await getCustomStrategyDefinition(id);
-      } catch {
-        initialDefinition = null;
-      }
+      initialDefinition = await getCustomStrategyDefinition(id);
     }
   }
 

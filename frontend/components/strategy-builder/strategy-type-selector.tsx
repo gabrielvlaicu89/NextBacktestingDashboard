@@ -8,12 +8,12 @@
  */
 import { cn } from "@/lib/utils";
 import { STRATEGY_CATALOG } from "@/lib/strategy-catalog";
-import type { StrategyType } from "@/lib/types";
+import type { BuiltInStrategyType } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 
 interface StrategyTypeSelectorProps {
-  value: StrategyType | null;
-  onChange: (type: StrategyType) => void;
+  value: BuiltInStrategyType | null;
+  onChange: (type: BuiltInStrategyType) => void;
   disabled?: boolean;
 }
 

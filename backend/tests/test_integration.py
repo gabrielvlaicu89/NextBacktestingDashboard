@@ -119,3 +119,63 @@ def test_backtest_error_handling(mock_fetch, client):
     assert response.status_code == 200  # SSE always returns 200
     events = _parse_sse(response.text)
     assert any(e["type"] == "error" for e in events)
+
+
+@patch("app.routers.backtest.fetch_ohlcv", side_effect=_mock_ohlcv)
+def test_custom_strategy_backtest(mock_fetch, client):
+    """POST /api/backtest/run with CUSTOM returns a complete SSE result."""
+    response = client.post(
+        "/api/backtest/run",
+        json={
+            "strategy_type": "CUSTOM",
+            "ticker": "SPY",
+            "date_from": "2024-01-01",
+            "date_to": "2024-12-31",
+            "parameters": {
+                "custom_definition": {
+                    "version": 1,
+                    "name": "Price Threshold Draft",
+                    "description": "Long when price recovers above 90.",
+                    "indicators": [],
+                    "longEntry": {
+                        "type": "group",
+                        "operator": "AND",
+                        "conditions": [
+                            {
+                                "type": "condition",
+                                "left": {"kind": "price", "field": "CLOSE"},
+                                "comparator": ">",
+                                "right": {"kind": "constant", "value": 90},
+                            }
+                        ],
+                    },
+                    "longExit": {
+                        "type": "group",
+                        "operator": "AND",
+                        "conditions": [
+                            {
+                                "type": "condition",
+                                "left": {"kind": "price", "field": "CLOSE"},
+                                "comparator": "<",
+                                "right": {"kind": "constant", "value": 89},
+                            }
+                        ],
+                    },
+                    "shortEntry": {
+                        "type": "group",
+                        "operator": "AND",
+                        "conditions": [],
+                    },
+                    "shortExit": {
+                        "type": "group",
+                        "operator": "AND",
+                        "conditions": [],
+                    },
+                }
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    events = _parse_sse(response.text)
+    assert any(event["type"] == "complete" for event in events)

@@ -11,9 +11,14 @@ import { useAppSelector } from "@/store/hooks";
 interface RunButtonProps {
   onRun: () => void;
   disabled?: boolean;
+  label?: string;
 }
 
-export function RunButton({ onRun, disabled = false }: RunButtonProps) {
+export function RunButton({
+  onRun,
+  disabled = false,
+  label = "Run Backtest",
+}: RunButtonProps) {
   const status = useAppSelector((s: RootState) => s.backtest.status);
   const isRunning = status === "running";
 
@@ -33,7 +38,7 @@ export function RunButton({ onRun, disabled = false }: RunButtonProps) {
       ) : (
         <>
           <Play className="mr-2 h-4 w-4" />
-          Run Backtest
+          {label}
         </>
       )}
     </Button>

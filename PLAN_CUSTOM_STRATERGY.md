@@ -18,6 +18,15 @@ This document tracks the implementation plan for adding user-defined custom stra
 - [ ] Integrate custom strategies with backtesting, saving, duplication, comparison, optimization, and onboarding templates.
 - [ ] Keep all existing built-in strategies working without regression.
 
+## Current Implementation Snapshot
+
+- Custom draft authoring is live on the dedicated builder page with searchable indicators, nested rules, draft validation, and saved-definition CRUD.
+- The `+ New Backtest` launcher can now load saved custom drafts into runtime review and start a custom backtest.
+- The current custom execution path is intentionally limited to long-entry and long-exit rules.
+- Short-entry and short-exit rules can still be authored and saved in drafts, but they are blocked at runtime.
+- Built-in optimization remains built-in only.
+- Workspace persistence for executed custom backtests now depends on storing a definition snapshot in the persisted strategy parameters.
+
 ---
 
 ## Product Scope
@@ -71,9 +80,10 @@ This document tracks the implementation plan for adding user-defined custom stra
   - [ ] searchable list
   - [ ] grouped by tags / last updated
 - [ ] Define the launch flow from `+ New Backtest` for a saved custom strategy:
-  - [ ] select saved custom strategy
-  - [ ] review/edit backtest runtime config if needed
-  - [ ] run backtest
+  - [x] select saved custom strategy
+  - [x] review/edit backtest runtime config if needed
+  - [x] run backtest
+  - Note: current runtime support is limited to long-entry and long-exit custom strategies.
 
 ---
 
@@ -157,9 +167,9 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ### Backend Validation
 
-- [ ] Extend [backend/app/models/schemas.py](./backend/app/models/schemas.py) with Pydantic models for custom strategy definitions.
-- [ ] Add validation for indicator configs and rule structures.
-- [ ] Add version-aware parsing for custom definitions.
+- [x] Extend [backend/app/models/schemas.py](./backend/app/models/schemas.py) with Pydantic models for custom strategy definitions.
+- [x] Add validation for indicator configs and rule structures.
+- [x] Add version-aware parsing for custom definitions.
 
 ---
 
@@ -179,12 +189,12 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ### Initial Indicator Catalog Candidate Set
 
-- [ ] SMA
-- [ ] EMA
+- [x] SMA
+- [x] EMA
 - [ ] WMA
-- [ ] RSI
-- [ ] MACD
-- [ ] Bollinger Bands
+- [x] RSI
+- [x] MACD
+- [x] Bollinger Bands
 - [ ] ATR
 - [ ] Stochastic Oscillator
 - [ ] ADX
@@ -210,31 +220,34 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ## Phase 5 — Backend Custom Rule Engine
 
-- [ ] Design a custom rule evaluator format.
-- [ ] Support operands for:
-  - [ ] Price fields (`Open`, `High`, `Low`, `Close`, `Volume`)
-  - [ ] Indicator outputs
-  - [ ] Numeric constants
-- [ ] Support comparison operators:
-  - [ ] `>`
-  - [ ] `>=`
-  - [ ] `<`
-  - [ ] `<=`
-  - [ ] `==`
-  - [ ] `crosses_above`
-  - [ ] `crosses_below`
-- [ ] Support grouped boolean logic:
-  - [ ] `AND`
-  - [ ] `OR`
-  - [ ] nested groups
-- [ ] Build a compiler/evaluator that turns stored definitions into signal series.
+- [x] Design a custom rule evaluator format.
+- [x] Support operands for:
+  - [x] Price fields (`Open`, `High`, `Low`, `Close`, `Volume`)
+  - [x] Indicator outputs
+  - [x] Numeric constants
+- [x] Support comparison operators:
+  - [x] `>`
+  - [x] `>=`
+  - [x] `<`
+  - [x] `<=`
+  - [x] `==`
+  - [x] `crosses_above`
+  - [x] `crosses_below`
+- [x] Support grouped boolean logic:
+  - [x] `AND`
+  - [x] `OR`
+  - [x] nested groups
+- [x] Build a compiler/evaluator that turns stored definitions into signal series.
 - [ ] Produce explicit signal outputs for:
-  - [ ] long entry
-  - [ ] long exit
+  - [x] long entry
+  - [x] long exit
   - [ ] short entry
   - [ ] short exit
-- [ ] Validate references so rules cannot target missing indicators or invalid fields.
+- [x] Validate references so rules cannot target missing indicators or invalid fields.
 - [ ] Prevent circular indicator dependencies if chained indicators are supported.
+
+Current limitation:
+- The shipped evaluator only runs long-entry and long-exit logic. Short-side execution remains blocked until the engine itself supports short lifecycle handling.
 
 ---
 
@@ -254,17 +267,20 @@ This document tracks the implementation plan for adding user-defined custom stra
 - [ ] Ensure PnL, equity curve, and trade logs remain correct under shorting.
 - [ ] Add compatibility adapters so built-in strategies can continue to run while custom strategies use the richer signal model.
 
+Current limitation:
+- Custom backtests currently reuse the existing long-only execution engine. That is why short custom rules are still blocked at runtime.
+
 ---
 
 ## Phase 7 — Backend Strategy Resolution & Backtest Flow
 
 - [ ] Replace hardcoded strategy resolution in [backend/app/engine/base.py](./backend/app/engine/base.py) with a registry/factory layer.
 - [ ] Allow the backtest flow to resolve either:
-  - [ ] built-in strategy class
-  - [ ] custom strategy definition
+  - [x] built-in strategy class
+  - [x] custom strategy definition
 - [ ] Refactor [backend/app/routers/backtest.py](./backend/app/routers/backtest.py) so strategy-specific branching is not hardcoded by enum where avoidable.
 - [ ] Add dependency resolution for custom indicators and data inputs.
-- [ ] Ensure SSE responses continue to work with custom strategy runs.
+- [x] Ensure SSE responses continue to work with custom strategy runs.
 - [ ] Ensure result payloads stay valid JSON.
 
 ---
@@ -307,38 +323,38 @@ This document tracks the implementation plan for adding user-defined custom stra
 ### Entry Point & Mode Selection
 
 - [x] Add a dedicated page for custom strategy authoring, likely under `app/dashboard/build-custom-stratergy/page.tsx`.
-- [ ] Add any supporting loading/error states for the custom builder page.
+- [x] Add any supporting loading/error states for the custom builder page.
 - [x] Add a `Save` button to persist custom strategy definitions from the dedicated builder page.
 - [x] Add support for editing an existing saved custom strategy from the dedicated builder page.
 - [x] Decide whether the page should support query-param or route-param based editing for saved custom strategies.
 
 ### Indicator Selection UI
 
-- [ ] Build a searchable indicator library picker.
+- [x] Build a searchable indicator library picker.
 - [x] Group indicators by category.
 - [x] Let users add/remove multiple indicators.
 - [x] Show parameter editors based on indicator metadata.
 
 ### Rule Builder UI
 
-- [ ] Build visual editors for:
-  - [ ] long-entry rules
-  - [ ] long-exit rules
-  - [ ] short-entry rules
-  - [ ] short-exit rules
-- [ ] Allow nested groups.
-- [ ] Allow indicator-to-indicator comparisons.
-- [ ] Allow indicator-to-price comparisons.
-- [ ] Allow indicator-to-constant comparisons.
-- [ ] Support advanced conditions like crossings.
-- [ ] Prevent invalid incomplete rules from being saved or run.
+- [x] Build visual editors for:
+  - [x] long-entry rules
+  - [x] long-exit rules
+  - [x] short-entry rules
+  - [x] short-exit rules
+- [x] Allow nested groups.
+- [x] Allow indicator-to-indicator comparisons.
+- [x] Allow indicator-to-price comparisons.
+- [x] Allow indicator-to-constant comparisons.
+- [x] Support advanced conditions like crossings.
+- [x] Prevent invalid incomplete rules from being saved or run.
 
 ### Builder Integration
 
 - [x] Refactor [frontend/components/strategy-builder/strategy-builder-form.tsx](./frontend/components/strategy-builder/strategy-builder-form.tsx) so it remains focused on built-in strategies and backtest launching.
 - [x] Add a separate custom strategy builder container/component for the new dedicated page.
 - [ ] Decide whether [frontend/components/strategy-builder/strategy-params-form.tsx](./frontend/components/strategy-builder/strategy-params-form.tsx) remains built-in-only.
-- [ ] Add inline validation and summary errors for custom rule definitions.
+- [x] Add inline validation and summary errors for custom rule definitions.
 
 ### `+ New Backtest` Page UX
 
@@ -346,11 +362,14 @@ This document tracks the implementation plan for adding user-defined custom stra
 - [x] Section 1: pre-defined strategies.
 - [x] Section 2: saved custom strategies from the dedicated builder page.
 - [x] Add fetch/load logic so the page can list saved custom strategies.
-- [ ] Define how a user selects a custom strategy and starts a backtest from the launcher page.
-- [ ] Decide whether selecting a custom strategy should:
+- [x] Define how a user selects a custom strategy and starts a backtest from the launcher page.
+- [x] Decide whether selecting a custom strategy should:
   - [ ] immediately run using saved settings
-  - [ ] prefill a run configuration form
+  - [x] prefill a run configuration form
   - [ ] navigate to a review page before execution
+- [x] Reuse the existing builder form shell as the runtime review step.
+- [x] Allow running supported long-only custom strategies from the launcher.
+- [x] Add client-side runtime validation for shared fields in custom mode with the same quality as built-in runs.
 
 ---
 
@@ -372,7 +391,7 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ### Save & CRUD
 
-- [ ] Extend [frontend/lib/actions/backtest.ts](./frontend/lib/actions/backtest.ts) to create strategy instances tied to custom definitions.
+- [x] Extend [frontend/lib/actions/backtest.ts](./frontend/lib/actions/backtest.ts) to create strategy instances tied to custom definitions.
 - [x] Extend [frontend/lib/actions/strategies.ts](./frontend/lib/actions/strategies.ts) to save, fetch, update, and duplicate custom definitions.
 - [ ] Ensure strategy serialization remains stable.
 - [x] Add dedicated save/update flows for custom strategy definitions independent of backtest execution.
@@ -381,9 +400,12 @@ This document tracks the implementation plan for adding user-defined custom stra
 ### Workspace
 
 - [ ] Update workspace rendering to show custom strategy labels and metadata clearly.
-- [ ] Update [frontend/components/workspace/strategy-card.tsx](./frontend/components/workspace/strategy-card.tsx) for custom strategy identity and duplicate behavior.
+- [x] Update [frontend/components/workspace/strategy-card.tsx](./frontend/components/workspace/strategy-card.tsx) for custom strategy identity and duplicate behavior.
 - [ ] Ensure filtering and sorting still work for custom strategies.
 - [ ] Decide whether saved custom strategies appear only on the `+ New Backtest` launcher page or also in the main workspace before they have any runs.
+
+Review follow-up:
+- Custom strategy duplication from workspace now restores runtime fields alongside the custom definition snapshot.
 
 ### Onboarding
 
@@ -431,20 +453,20 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 - [ ] Indicator registry tests.
 - [ ] Indicator computation tests.
-- [ ] Rule evaluation tests.
+- [x] Rule evaluation tests.
 - [ ] Nested boolean group tests.
-- [ ] Cross-over operator tests.
+- [x] Cross-over operator tests.
 - [ ] Long/short execution tests.
 - [ ] Stop-loss/take-profit tests for both sides.
 - [ ] Custom strategy optimization parameter extraction tests.
 
 ### Backend Integration Tests
 
-- [ ] `/api/backtest/run` with valid custom definition.
+- [x] `/api/backtest/run` with valid custom definition.
 - [ ] `/api/backtest/run` with invalid custom definition.
 - [ ] `/api/backtest/run` with missing indicator reference.
 - [ ] `/api/backtest/optimize` for custom strategies.
-- [ ] SSE payload validation for custom strategies.
+- [x] SSE payload validation for custom strategies.
 
 ### Frontend Tests
 
@@ -456,7 +478,7 @@ This document tracks the implementation plan for adding user-defined custom stra
 - [x] Sidebar navigation tests for the dedicated custom builder page.
 - [x] Indicator picker component tests.
 - [x] Indicator parameter form tests.
-- [ ] Rule builder interaction tests.
+- [x] Rule builder interaction tests.
 - [x] Duplicate flow tests.
 - [ ] Workspace rendering tests for custom strategies.
 - [ ] Optimization form tests for custom strategy metadata.
@@ -468,7 +490,9 @@ This document tracks the implementation plan for adding user-defined custom stra
 - [x] Save it successfully.
 - [x] Reopen it successfully.
 - [ ] Duplicate it successfully.
-- [ ] Run a backtest successfully.
+- [x] Duplicate a custom strategy back into launcher runtime review mode successfully.
+- [x] Run a long-only backtest successfully.
+- [ ] Run a short-enabled custom strategy once engine support lands.
 - [ ] Compare it with built-in strategies.
 - [ ] Optimize at least one indicator/rule threshold.
 - [ ] Confirm mobile behavior remains acceptable.
@@ -486,26 +510,28 @@ This document tracks the implementation plan for adding user-defined custom stra
 - [x] [frontend/store/slices/strategyBuilderSlice.ts](./frontend/store/slices/strategyBuilderSlice.ts)
 - [x] [frontend/app/dashboard/new/page.tsx](./frontend/app/dashboard/new/page.tsx)
 - [x] [frontend/app/dashboard/build-custom-stratergy/page.tsx](./frontend/app/dashboard/build-custom-stratergy/page.tsx)
-- [ ] [frontend/components/strategy-builder/strategy-builder-form.tsx](./frontend/components/strategy-builder/strategy-builder-form.tsx)
-- [ ] [frontend/components/strategy-builder/strategy-type-selector.tsx](./frontend/components/strategy-builder/strategy-type-selector.tsx)
-- [ ] [frontend/components/strategy-builder/strategy-params-form.tsx](./frontend/components/strategy-builder/strategy-params-form.tsx)
-- [ ] [frontend/components/strategy-builder/onboarding-modal.tsx](./frontend/components/strategy-builder/onboarding-modal.tsx)
+- [x] [frontend/components/strategy-builder/strategy-builder-form.tsx](./frontend/components/strategy-builder/strategy-builder-form.tsx)
+- [x] [frontend/components/strategy-builder/strategy-type-selector.tsx](./frontend/components/strategy-builder/strategy-type-selector.tsx)
+- [x] [frontend/components/strategy-builder/strategy-params-form.tsx](./frontend/components/strategy-builder/strategy-params-form.tsx)
+- [x] [frontend/components/strategy-builder/onboarding-modal.tsx](./frontend/components/strategy-builder/onboarding-modal.tsx)
 - [x] [frontend/components/custom-strategy/custom-strategy-builder-workspace.tsx](./frontend/components/custom-strategy/custom-strategy-builder-workspace.tsx)
 - [x] [frontend/components/custom-strategy/custom-strategy-indicator-library.tsx](./frontend/components/custom-strategy/custom-strategy-indicator-library.tsx)
+- [x] [frontend/components/custom-strategy/custom-strategy-rule-builder.tsx](./frontend/components/custom-strategy/custom-strategy-rule-builder.tsx)
 - [x] [frontend/components/custom-strategy/saved-custom-strategies-section.tsx](./frontend/components/custom-strategy/saved-custom-strategies-section.tsx)
 - [x] [frontend/components/layout/app-sidebar.tsx](./frontend/components/layout/app-sidebar.tsx)
 - [ ] [frontend/components/layout/mobile-header.tsx](./frontend/components/layout/mobile-header.tsx)
 - [ ] [frontend/components/optimization/optimize-config-form.tsx](./frontend/components/optimization/optimize-config-form.tsx)
-- [ ] [frontend/components/workspace/strategy-card.tsx](./frontend/components/workspace/strategy-card.tsx)
-- [ ] [frontend/lib/actions/backtest.ts](./frontend/lib/actions/backtest.ts)
+- [x] [frontend/components/workspace/strategy-card.tsx](./frontend/components/workspace/strategy-card.tsx)
+- [x] [frontend/lib/actions/backtest.ts](./frontend/lib/actions/backtest.ts)
 - [ ] [frontend/lib/actions/strategies.ts](./frontend/lib/actions/strategies.ts)
 - [ ] [frontend/app/api/backtest/route.ts](./frontend/app/api/backtest/route.ts)
-- [ ] [backend/app/models/schemas.py](./backend/app/models/schemas.py)
-- [ ] [backend/app/engine/base.py](./backend/app/engine/base.py)
+- [x] [backend/app/models/schemas.py](./backend/app/models/schemas.py)
+- [x] [backend/app/engine/base.py](./backend/app/engine/base.py)
+- [x] [backend/app/engine/custom_strategy.py](./backend/app/engine/custom_strategy.py)
 - [ ] [backend/app/engine/mean_reversion.py](./backend/app/engine/mean_reversion.py)
 - [ ] [backend/app/engine/ma_crossover.py](./backend/app/engine/ma_crossover.py)
 - [ ] [backend/app/engine/pairs_trading.py](./backend/app/engine/pairs_trading.py)
-- [ ] [backend/app/routers/backtest.py](./backend/app/routers/backtest.py)
+- [x] [backend/app/routers/backtest.py](./backend/app/routers/backtest.py)
 - [ ] [backend/app/routers/strategies.py](./backend/app/routers/strategies.py)
 - [ ] [backend/app/services/optimizer.py](./backend/app/services/optimizer.py)
 - [ ] [backend/app/services/metrics.py](./backend/app/services/metrics.py)

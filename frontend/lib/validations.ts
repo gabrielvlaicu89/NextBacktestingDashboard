@@ -3,16 +3,25 @@
  * Mirror the backend Pydantic models for consistent validation on both sides.
  */
 import { z } from "zod";
+import type {
+  CustomRuleSection,
+  CustomStrategyDefinition,
+  CustomStrategyValidationIssue,
+  RuleNode,
+  RuleOperand,
+} from "@/lib/types";
 
 // ── Shared constants ──────────────────────────────────────────────────────────
 
-export const STRATEGY_TYPES = [
+export const BUILT_IN_STRATEGY_TYPES = [
   "MEAN_REVERSION",
   "MA_CROSSOVER",
   "EARNINGS_DRIFT",
   "PAIRS_TRADING",
   "BUY_AND_HOLD",
 ] as const;
+
+export const STRATEGY_TYPES = [...BUILT_IN_STRATEGY_TYPES, "CUSTOM"] as const;
 
 export const STRATEGY_BUILDER_MODES = ["BUILT_IN", "CUSTOM"] as const;
 
@@ -40,6 +49,12 @@ export const INDICATOR_OUTPUT_KEYS = [
 
 const dateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format");
 const identifierSchema = z.string().min(1, "Identifier is required").max(100);
+const CUSTOM_RULE_SECTIONS: CustomRuleSection[] = [
+  "longEntry",
+  "longExit",
+  "shortEntry",
+  "shortExit",
+];
 
 // ── Risk Settings ─────────────────────────────────────────────────────────────
 
@@ -53,18 +68,58 @@ export const riskSettingsSchema = z.object({
 
 // ── Backtest Request (sent to FastAPI via proxy) ──────────────────────────────
 
-export const backtestRequestSchema = z.object({
-  strategy_type: z.enum(STRATEGY_TYPES),
+const backtestRequestBaseSchema = z.object({
   ticker: z.string().min(1, "Ticker is required").max(10),
   date_from: dateStringSchema,
   date_to: dateStringSchema,
   benchmark: z.string().min(1).default("SPY"),
   risk_settings: riskSettingsSchema.default({}),
+});
+
+const builtInBacktestRequestSchema = backtestRequestBaseSchema.extend({
+  strategy_type: z.enum(BUILT_IN_STRATEGY_TYPES),
   parameters: z.record(z.unknown()).default({}),
-}).refine(
-  (data) => data.date_to > data.date_from,
-  { message: "End date must be after start date", path: ["date_to"] },
-);
+});
+
+const customBacktestRequestSchema = backtestRequestBaseSchema.extend({
+  strategy_type: z.literal("CUSTOM"),
+  parameters: z
+    .object({
+      custom_definition: z.lazy(() => customStrategyDraftSchema),
+    })
+    .catchall(z.unknown()),
+});
+
+export const backtestRequestSchema = z
+  .discriminatedUnion("strategy_type", [
+    builtInBacktestRequestSchema,
+    customBacktestRequestSchema,
+  ])
+  .superRefine((data, ctx) => {
+    if (data.date_to <= data.date_from) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End date must be after start date",
+        path: ["date_to"],
+      });
+    }
+
+    if (data.strategy_type !== "CUSTOM") {
+      return;
+    }
+
+    const runtimeIssues = getCustomStrategyRuntimeIssues(
+      data.parameters.custom_definition,
+    );
+
+    runtimeIssues.forEach((issue, index) => {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: issue,
+        path: ["parameters", "custom_definition", index],
+      });
+    });
+  });
 
 export type BacktestRequestInput = z.infer<typeof backtestRequestSchema>;
 
@@ -261,6 +316,144 @@ export const customStrategyDraftSchema = z
 
 export type CustomStrategyDraftInput = z.infer<typeof customStrategyDraftSchema>;
 
+function inferIssueContext(path: Array<string | number>): Pick<
+  CustomStrategyValidationIssue,
+  "section" | "conditionIndex"
+> {
+  const section = CUSTOM_RULE_SECTIONS.find((candidate) => path[0] === candidate);
+  const numericPath = path.filter((segment): segment is number => typeof segment === "number");
+  const isConditionIssue =
+    path.includes("left") ||
+    path.includes("right") ||
+    path.includes("comparator") ||
+    path[path.length - 1] === "type";
+  const conditionIndex =
+    isConditionIssue && numericPath.length > 0
+      ? numericPath[numericPath.length - 1]
+      : undefined;
+
+  return {
+    section,
+    conditionIndex,
+  };
+}
+
+function collectIncompleteGroupIssues(
+  node: RuleNode,
+  path: Array<string | number>,
+): CustomStrategyValidationIssue[] {
+  if (node.type === "condition") {
+    return [];
+  }
+
+  const nestedPath = path.filter((segment): segment is number => typeof segment === "number");
+  const ownIssues =
+    nestedPath.length > 0 && node.conditions.length === 0
+      ? [
+          buildIssue(
+            [...path, "conditions"],
+            "Add at least one condition or remove this empty group.",
+          ),
+        ]
+      : [];
+
+  return [
+    ...ownIssues,
+    ...node.conditions.flatMap((child, index) =>
+      collectIncompleteGroupIssues(child, [...path, "conditions", index]),
+    ),
+  ];
+}
+
+function buildIssue(
+  path: Array<string | number>,
+  message: string,
+): CustomStrategyValidationIssue {
+  return {
+    path,
+    message,
+    ...inferIssueContext(path),
+  };
+}
+
+function collectRuleOperandIssues(
+  operand: RuleOperand,
+  path: Array<string | number>,
+  indicatorIds: Set<string>,
+): CustomStrategyValidationIssue[] {
+  if (operand.kind !== "indicator") {
+    return [];
+  }
+
+  if (!operand.indicatorId.trim()) {
+    return [buildIssue(path, "Select an indicator for this operand.")];
+  }
+
+  if (!indicatorIds.has(operand.indicatorId)) {
+    return [
+      buildIssue(
+        path,
+        `This condition references missing indicator '${operand.indicatorId}'.`,
+      ),
+    ];
+  }
+
+  return [];
+}
+
+function collectRuleNodeIssues(
+  node: RuleNode,
+  path: Array<string | number>,
+  indicatorIds: Set<string>,
+): CustomStrategyValidationIssue[] {
+  if (node.type === "condition") {
+    return [
+      ...collectRuleOperandIssues(node.left, [...path, "left", "indicatorId"], indicatorIds),
+      ...collectRuleOperandIssues(node.right, [...path, "right", "indicatorId"], indicatorIds),
+    ];
+  }
+
+  return node.conditions.flatMap((child, index) =>
+    collectRuleNodeIssues(child, [...path, "conditions", index], indicatorIds),
+  );
+}
+
+export function validateCustomStrategyBuilderDraft(
+  definition: CustomStrategyDefinition,
+): CustomStrategyValidationIssue[] {
+  const parsed = customStrategyDraftSchema.safeParse(definition);
+  const baseIssues = parsed.success
+    ? []
+    : parsed.error.issues
+        .filter(
+          (issue) =>
+            !(
+              issue.path.length === 1 &&
+              issue.path[0] === "indicators" &&
+              issue.message.startsWith("Rules reference unknown indicator")
+            ) &&
+            !(
+              issue.path[issue.path.length - 1] === "indicatorId" &&
+              issue.message === "Identifier is required"
+            ),
+        )
+        .map((issue) => buildIssue(issue.path, issue.message));
+  const indicatorIds = new Set(definition.indicators.map((indicator) => indicator.id));
+  const ruleIssues = CUSTOM_RULE_SECTIONS.flatMap((section) =>
+    collectRuleNodeIssues(definition[section], [section], indicatorIds),
+  );
+  const incompleteGroupIssues = CUSTOM_RULE_SECTIONS.flatMap((section) =>
+    collectIncompleteGroupIssues(definition[section], [section]),
+  );
+  const uniqueIssues = new Map<string, CustomStrategyValidationIssue>();
+
+  [...baseIssues, ...ruleIssues, ...incompleteGroupIssues].forEach((issue) => {
+    uniqueIssues.set(`${issue.path.join(".")}:${issue.message}`, issue);
+  });
+
+  return [...uniqueIssues.values()];
+}
+
 export const createCustomStrategyDefinitionSchema = z.object({
   definition: customStrategyDraftSchema,
   tags: z.array(z.string().min(1).max(50)).default([]),
@@ -298,3 +491,30 @@ export type CreateStrategyInput = z.infer<typeof createStrategySchema>;
 export const updateStrategySchema = createStrategySchema.partial();
 
 export type UpdateStrategyInput = z.infer<typeof updateStrategySchema>;
+
+function hasRuleNodes(section: CustomStrategyDefinition[CustomRuleSection]): boolean {
+  return section.conditions.length > 0;
+}
+
+export function getCustomStrategyRuntimeIssues(
+  definition: CustomStrategyDefinition,
+): string[] {
+  const builderIssues = validateCustomStrategyBuilderDraft(definition);
+  const runtimeIssues = new Set<string>(builderIssues.map((issue) => issue.message));
+
+  if (!hasRuleNodes(definition.longEntry)) {
+    runtimeIssues.add("Add at least one long-entry rule before running this custom strategy.");
+  }
+
+  if (!hasRuleNodes(definition.longExit)) {
+    runtimeIssues.add("Add at least one long-exit rule before running this custom strategy.");
+  }
+
+  if (hasRuleNodes(definition.shortEntry) || hasRuleNodes(definition.shortExit)) {
+    runtimeIssues.add(
+      "Custom execution currently supports long-entry and long-exit rules only. Remove short-side rules before running.",
+    );
+  }
+
+  return [...runtimeIssues];
+}

@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SavedCustomStrategyLaunchButton } from "@/components/custom-strategy/saved-custom-strategy-launch-button";
 import type { CustomStrategyDefinitionRecord } from "@/lib/types";
 
 interface SavedCustomStrategiesSectionProps {
@@ -27,7 +28,8 @@ export function SavedCustomStrategiesSection({
             Saved Custom Strategies
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Open a saved custom definition in the dedicated builder page.
+            Select a saved custom definition to review runtime inputs, or open
+            the dedicated builder page to keep editing the draft itself.
           </p>
         </div>
         <Button asChild>
@@ -72,7 +74,8 @@ export function SavedCustomStrategiesSection({
                   </div>
                 )}
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex flex-wrap gap-2">
+                <SavedCustomStrategyLaunchButton definition={definition} />
                 <Button variant="outline" asChild>
                   <Link href={`/dashboard/build-custom-stratergy?id=${definition.id}`}>
                     <PencilLine className="h-4 w-4" />

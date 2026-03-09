@@ -75,8 +75,16 @@ Custom strategy persistence note:
 
 - The frontend now includes a `CustomStrategyDefinition` Prisma model for storing saved custom strategy drafts independently from built-in backtest strategies.
 - Saved custom definitions currently use a draft-safe schema, so incomplete rule trees can be saved and reopened before execution support exists.
-- The dedicated custom builder page now includes a local indicator catalog with add/remove flows and parameter editors for saved drafts.
-- The `+ New Backtest` page now lists saved custom strategy drafts and links into the dedicated custom builder page for editing.
+- The dedicated custom builder page now includes a searchable local indicator catalog with add/remove flows and parameter editors for saved drafts.
+- The dedicated custom builder page now also includes nested rule editors for long and short entry and exit conditions using price, indicator, and constant operands.
+- The custom builder now shows inline rule validation errors and a save-time validation summary when a draft contains malformed rule operands or broken indicator references.
+- The custom builder now also blocks saving any started nested group that is still empty, while keeping untouched top-level rule sections draft-safe.
+- The custom builder route now includes a dedicated loading skeleton and route-level error boundary for failed draft loading.
+- The `+ New Backtest` page now lists saved custom strategy drafts, lets users load one into launcher runtime review mode, and still links into the dedicated custom builder page for editing.
+- Launcher-side custom runtime review now supports running saved custom strategies through the backend when they use long-entry and long-exit rules only.
+- Custom duplication from the workspace now restores the saved runtime fields as well as the definition snapshot before returning to the launcher.
+- Custom launcher runs now reuse the shared ticker/date/benchmark/risk validation path before any request is sent.
+- Short-entry and short-exit custom rules are still draftable but are blocked at runtime until the execution engine supports short lifecycle handling.
 - After pulling schema changes, run Prisma migrations before starting the app so the custom definition table exists locally.
 
 If the generated Prisma client gets out of sync after schema changes, run:
@@ -142,11 +150,20 @@ After startup, verify these flows in order:
 Custom strategy draft smoke test:
 
 1. Open `/dashboard/build-custom-stratergy`
-2. Add at least one indicator and adjust one indicator parameter
-3. Create a draft name and description, then save
-4. Refresh the page and confirm the saved draft can be reopened with the same indicators
-5. Open `+ New Backtest` and confirm the saved custom strategy appears in the launcher section
-6. Use the edit link and confirm it loads the same saved draft
+2. Search the indicator library and add at least one indicator, then adjust one indicator parameter
+3. Add at least one long-entry or exit rule, then create a nested subgroup and place a condition inside it
+4. Add another nested subgroup and leave it empty, then confirm the builder blocks saving until that empty group is removed or completed
+5. Switch one rule operand to `Indicator` without selecting a valid indicator and confirm inline validation appears and save is blocked
+6. Restore the rule tree to a valid state, create a draft name and description, then save
+7. Refresh the page and confirm the saved draft can be reopened with the same indicators and nested rules
+8. Open `+ New Backtest` and confirm the saved custom strategy appears in the launcher section
+9. Use `Review Runtime Config` and confirm the launcher switches into custom runtime review mode for that saved draft
+10. Run a long-only custom draft and confirm the backtest starts successfully
+11. Clear the ticker or invert the date range in launcher runtime review mode and confirm inline validation appears before any request is sent
+12. Add a short-entry or short-exit rule to a draft, return to the launcher, and confirm runtime blocking appears before the request is sent
+13. Duplicate a saved custom strategy from the workspace and confirm ticker, date range, benchmark, risk settings, tags, and the definition snapshot are all restored in the launcher
+14. Use the edit link and confirm it loads the same saved draft on the dedicated builder page
+15. Temporarily break the custom strategy definition fetch and confirm the page shows the custom builder retry state instead of a blank editor
 
 ## Useful Commands
 

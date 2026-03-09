@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { IndicatorNode } from "@/lib/types";
 import { CUSTOM_INDICATOR_CATALOG, getCustomIndicatorCatalogItem } from "@/lib/custom-indicator-catalog";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +29,8 @@ interface CustomStrategyIndicatorLibraryProps {
   disabled?: boolean;
 }
 
-function groupCatalogByCategory() {
-  return CUSTOM_INDICATOR_CATALOG.reduce<Record<string, typeof CUSTOM_INDICATOR_CATALOG>>(
+function groupCatalogByCategory(items: typeof CUSTOM_INDICATOR_CATALOG) {
+  return items.reduce<Record<string, typeof CUSTOM_INDICATOR_CATALOG>>(
     (groups, indicator) => {
       if (!groups[indicator.category]) {
         groups[indicator.category] = [];
@@ -50,7 +51,24 @@ export function CustomStrategyIndicatorLibrary({
   onUpdateIndicatorParam,
   disabled = false,
 }: CustomStrategyIndicatorLibraryProps) {
-  const catalogGroups = groupCatalogByCategory();
+  const [searchQuery, setSearchQuery] = useState("");
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredCatalog = normalizedQuery
+    ? CUSTOM_INDICATOR_CATALOG.filter((indicator) => {
+        const searchableText = [
+          indicator.id,
+          indicator.label,
+          indicator.description,
+          indicator.category,
+          ...indicator.outputs,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(normalizedQuery);
+      })
+    : CUSTOM_INDICATOR_CATALOG;
+  const catalogGroups = groupCatalogByCategory(filteredCatalog);
 
   return (
     <div className="space-y-6" data-testid="custom-indicator-library">
@@ -63,53 +81,74 @@ export function CustomStrategyIndicatorLibrary({
           </p>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          {Object.entries(catalogGroups).map(([category, items]) => (
-            <div key={category} className="rounded-lg border p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h3 className="text-sm font-medium">{category}</h3>
-                <Badge variant="secondary">{items.length}</Badge>
-              </div>
-
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-md border border-dashed p-3"
-                    data-testid={`indicator-catalog-card-${item.id}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium">{item.label}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {item.description}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onAddIndicator(item.id)}
-                        disabled={disabled}
-                        data-testid={`add-indicator-${item.id}`}
-                      >
-                        Add
-                      </Button>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {item.outputs.map((output) => (
-                        <Badge key={output} variant="outline">
-                          {output}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="space-y-2">
+          <Label htmlFor="custom-indicator-search">Search Indicators</Label>
+          <Input
+            id="custom-indicator-search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search by name, category, or output"
+            data-testid="custom-indicator-search-input"
+            disabled={disabled}
+          />
         </div>
+
+        {filteredCatalog.length === 0 ? (
+          <div
+            className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground"
+            data-testid="indicator-search-empty-state"
+          >
+            No indicators match the current search.
+          </div>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {Object.entries(catalogGroups).map(([category, items]) => (
+              <div key={category} className="rounded-lg border p-4">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-medium">{category}</h3>
+                  <Badge variant="secondary">{items.length}</Badge>
+                </div>
+
+                <div className="space-y-3">
+                  {items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-md border border-dashed p-3"
+                      data-testid={`indicator-catalog-card-${item.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium">{item.label}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {item.description}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onAddIndicator(item.id)}
+                          disabled={disabled}
+                          data-testid={`add-indicator-${item.id}`}
+                        >
+                          Add
+                        </Button>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-1">
+                        {item.outputs.map((output) => (
+                          <Badge key={output} variant="outline">
+                            {output}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">

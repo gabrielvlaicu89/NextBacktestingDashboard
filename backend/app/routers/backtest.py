@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from app.models.schemas import (
     BacktestRequest,
     BacktestResponse,
+    CustomStrategyDefinition,
     OptimizeRequest,
     StrategyType,
 )
@@ -44,6 +45,18 @@ async def _stream_backtest(request: BacktestRequest) -> AsyncGenerator[str, None
 
         yield _sse("progress", percent=30, message="Running strategy…")
         await asyncio.sleep(0)
+
+        if request.strategy_type == StrategyType.CUSTOM:
+            yield _sse(
+                "progress",
+                percent=25,
+                message="Validating custom strategy definition…",
+            )
+            await asyncio.sleep(0)
+            custom_definition = CustomStrategyDefinition.model_validate(
+                request.parameters.get("custom_definition")
+            )
+            request.parameters["custom_definition"] = custom_definition.model_dump()
 
         strategy = get_strategy(
             request.strategy_type, request.parameters, request.risk_settings

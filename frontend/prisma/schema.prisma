@@ -20,6 +20,7 @@ enum StrategyType {
   EARNINGS_DRIFT
   PAIRS_TRADING
   BUY_AND_HOLD
+  CUSTOM
 }
 
 enum RunStatus {

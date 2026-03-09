@@ -82,6 +82,52 @@ describe("CustomStrategyIndicatorLibrary", () => {
     expect(onAddIndicator).toHaveBeenCalledWith("RSI");
   });
 
+  it("filters the catalog using the search input", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <CustomStrategyIndicatorLibrary
+        indicators={[]}
+        onAddIndicator={vi.fn()}
+        onRemoveIndicator={vi.fn()}
+        onUpdateIndicatorLabel={vi.fn()}
+        onUpdateIndicatorParam={vi.fn()}
+      />,
+    );
+
+    await user.type(
+      screen.getByTestId("custom-indicator-search-input"),
+      "volatility",
+    );
+
+    expect(screen.getByTestId("indicator-catalog-card-BOLLINGER_BANDS")).toBeInTheDocument();
+    expect(screen.queryByTestId("indicator-catalog-card-RSI")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("indicator-catalog-card-SMA")).not.toBeInTheDocument();
+  });
+
+  it("shows an empty state when the search has no matches", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <CustomStrategyIndicatorLibrary
+        indicators={[]}
+        onAddIndicator={vi.fn()}
+        onRemoveIndicator={vi.fn()}
+        onUpdateIndicatorLabel={vi.fn()}
+        onUpdateIndicatorParam={vi.fn()}
+      />,
+    );
+
+    await user.type(
+      screen.getByTestId("custom-indicator-search-input"),
+      "nonexistent-indicator",
+    );
+
+    expect(screen.getByTestId("indicator-search-empty-state")).toHaveTextContent(
+      "No indicators match the current search.",
+    );
+  });
+
   it("lets users edit selected indicator labels and params", async () => {
     const user = userEvent.setup();
 

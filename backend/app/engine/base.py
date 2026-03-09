@@ -192,6 +192,7 @@ def get_strategy(
     from app.engine.earnings_drift import EarningsDriftStrategy
     from app.engine.pairs_trading import PairsTradingStrategy
     from app.engine.buy_and_hold import BuyAndHoldStrategy
+    from app.engine.custom_strategy import CustomStrategy
 
     mapping = {
         StrategyType.MEAN_REVERSION: MeanReversionStrategy,
@@ -199,6 +200,7 @@ def get_strategy(
         StrategyType.EARNINGS_DRIFT: EarningsDriftStrategy,
         StrategyType.PAIRS_TRADING: PairsTradingStrategy,
         StrategyType.BUY_AND_HOLD: BuyAndHoldStrategy,
+        StrategyType.CUSTOM: CustomStrategy,
     }
     cls = mapping[strategy_type]
     return cls(params, risk)

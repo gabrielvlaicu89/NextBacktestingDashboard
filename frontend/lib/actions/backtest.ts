@@ -9,7 +9,7 @@
 import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { backtestRequestSchema } from "@/lib/validations";
-import { Prisma } from "@/app/generated/prisma/client";
+import { Prisma, StrategyType as PrismaStrategyType } from "@/app/generated/prisma/client";
 
 export interface CreateRunResult {
   strategyId: string;
@@ -38,13 +38,13 @@ export async function createBacktestRun(input: {
   const { strategy_type, ticker, date_from, date_to, benchmark, risk_settings, parameters } =
     parsed.data;
 
-  const strategyName = input.name || `${ticker} ${strategy_type.replace(/_/g, " ")}`;
+  const strategyName = input.name || `${ticker} ${String(strategy_type).replace(/_/g, " ")}`;
 
   const strategy = await prisma.strategy.create({
     data: {
       userId: user.id,
       name: strategyName,
-      type: strategy_type,
+      type: strategy_type as PrismaStrategyType,
       ticker,
       benchmark,
       dateFrom: new Date(date_from),

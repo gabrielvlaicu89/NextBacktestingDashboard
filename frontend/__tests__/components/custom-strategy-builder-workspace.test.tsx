@@ -100,6 +100,7 @@ describe("CustomStrategyBuilderWorkspace", () => {
       "A custom strategy draft.",
     );
     await user.click(screen.getByTestId("add-indicator-RSI"));
+    await user.click(screen.getByTestId("add-rule-condition-longEntry"));
     const periodInput = screen.getByTestId(
       "custom-indicator-param-rsi-1-period",
     );
@@ -121,7 +122,18 @@ describe("CustomStrategyBuilderWorkspace", () => {
               params: { period: 21 },
             },
           ],
-          longEntry: { type: "group", operator: "AND", conditions: [] },
+          longEntry: {
+            type: "group",
+            operator: "AND",
+            conditions: [
+              {
+                type: "condition",
+                left: { kind: "indicator", indicatorId: "rsi-1" },
+                comparator: ">",
+                right: { kind: "constant", value: 0 },
+              },
+            ],
+          },
           longExit: { type: "group", operator: "AND", conditions: [] },
           shortEntry: { type: "group", operator: "AND", conditions: [] },
           shortExit: { type: "group", operator: "AND", conditions: [] },
@@ -242,5 +254,172 @@ describe("CustomStrategyBuilderWorkspace", () => {
 
     await user.click(screen.getByTestId("remove-indicator-sma-1"));
     expect(screen.getByTestId("no-selected-indicators")).toBeInTheDocument();
+  });
+
+  it("adds and removes rule conditions directly in the builder workspace", async () => {
+    const user = userEvent.setup();
+
+    renderWithStore(
+      <CustomStrategyBuilderWorkspace
+        initialDefinitions={[]}
+        initialDefinition={null}
+      />,
+    );
+
+    await user.click(screen.getByTestId("add-rule-condition-longExit"));
+    expect(screen.getByTestId("rule-condition-longExit-0")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("remove-rule-condition-longExit-0"));
+    expect(screen.getByTestId("empty-rule-group-longExit")).toBeInTheDocument();
+  });
+
+  it("adds and removes nested rule groups directly in the builder workspace", async () => {
+    const user = userEvent.setup();
+
+    renderWithStore(
+      <CustomStrategyBuilderWorkspace
+        initialDefinitions={[]}
+        initialDefinition={null}
+      />,
+    );
+
+    await user.click(screen.getByTestId("add-rule-group-longEntry"));
+    expect(screen.getByTestId("rule-subgroup-longEntry-0")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("add-rule-condition-longEntry-0"));
+    expect(screen.getByTestId("rule-condition-longEntry-0-0")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("remove-rule-group-longEntry-0"));
+    expect(screen.queryByTestId("rule-subgroup-longEntry-0")).not.toBeInTheDocument();
+  });
+
+  it("saves nested rule groups in the persisted custom draft payload", async () => {
+    const user = userEvent.setup();
+    const saved = makeDefinition({
+      id: "custom-nested",
+      name: "Nested Draft",
+      description: "Draft with nested groups.",
+      definition: {
+        ...makeDefinition().definition,
+        name: "Nested Draft",
+        description: "Draft with nested groups.",
+      },
+    });
+    mockCreateCustomStrategyDefinition.mockResolvedValue(saved);
+
+    renderWithStore(
+      <CustomStrategyBuilderWorkspace
+        initialDefinitions={[]}
+        initialDefinition={null}
+      />,
+    );
+
+    await user.type(screen.getByTestId("custom-strategy-name-input"), "Nested Draft");
+    await user.type(
+      screen.getByTestId("custom-strategy-description-input"),
+      "Draft with nested groups.",
+    );
+    await user.click(screen.getByTestId("add-rule-group-longEntry"));
+    await user.click(screen.getByTestId("add-rule-condition-longEntry-0"));
+    await user.click(screen.getByTestId("save-custom-strategy-button"));
+
+    await waitFor(() => {
+      expect(mockCreateCustomStrategyDefinition).toHaveBeenCalledWith({
+        definition: expect.objectContaining({
+          name: "Nested Draft",
+          description: "Draft with nested groups.",
+          longEntry: {
+            type: "group",
+            operator: "AND",
+            conditions: [
+              {
+                type: "group",
+                operator: "AND",
+                conditions: [
+                  {
+                    type: "condition",
+                    left: { kind: "price", field: "CLOSE" },
+                    comparator: ">",
+                    right: { kind: "constant", value: 0 },
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+        tags: [],
+      });
+    });
+  });
+
+  it("shows validation errors and blocks saving invalid rule rows", async () => {
+    const user = userEvent.setup();
+    const invalidDefinition = makeDefinition({
+      definition: {
+        ...makeDefinition().definition,
+        longEntry: {
+          type: "group",
+          operator: "AND",
+          conditions: [
+            {
+              type: "condition",
+              left: { kind: "indicator", indicatorId: "" },
+              comparator: ">",
+              right: { kind: "constant", value: 0 },
+            },
+          ],
+        },
+      },
+    });
+
+    renderWithStore(
+      <CustomStrategyBuilderWorkspace
+        initialDefinitions={[invalidDefinition]}
+        initialDefinition={invalidDefinition}
+      />,
+    );
+
+    expect(screen.getByTestId("custom-builder-validation-summary")).toHaveTextContent(
+      "Long entry condition 1: Select an indicator for this operand.",
+    );
+    expect(screen.getByTestId("rule-condition-errors-longEntry-0")).toHaveTextContent(
+      "Left operand: Select an indicator for this operand.",
+    );
+
+    await user.click(screen.getByTestId("save-custom-strategy-button"));
+
+    expect(mockCreateCustomStrategyDefinition).not.toHaveBeenCalled();
+    expect(mockUpdateCustomStrategyDefinition).not.toHaveBeenCalled();
+    expect(screen.getByTestId("custom-builder-error")).toHaveTextContent(
+      "Resolve the validation issues before saving this draft.",
+    );
+  });
+
+  it("blocks saving when a nested group is empty", async () => {
+    const user = userEvent.setup();
+
+    renderWithStore(
+      <CustomStrategyBuilderWorkspace
+        initialDefinitions={[]}
+        initialDefinition={null}
+      />,
+    );
+
+    await user.type(screen.getByTestId("custom-strategy-name-input"), "Empty Group Draft");
+    await user.click(screen.getByTestId("add-rule-group-longEntry"));
+
+    expect(screen.getByTestId("custom-builder-validation-summary")).toHaveTextContent(
+      "Long entry group 1: Add at least one condition or remove this empty group.",
+    );
+    expect(screen.getByTestId("rule-group-errors-longEntry-0")).toHaveTextContent(
+      "Add at least one condition or remove this empty group.",
+    );
+
+    await user.click(screen.getByTestId("save-custom-strategy-button"));
+
+    expect(mockCreateCustomStrategyDefinition).not.toHaveBeenCalled();
+    expect(screen.getByTestId("custom-builder-error")).toHaveTextContent(
+      "Resolve the validation issues before saving this draft.",
+    );
   });
 });

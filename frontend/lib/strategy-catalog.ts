@@ -4,7 +4,7 @@
  * This is the source of truth for rendering dynamic strategy forms.
  * If a new strategy is added to the backend, add it here too.
  */
-import type { StrategyType, StrategyCatalogItem } from "@/lib/types";
+import type { BuiltInStrategyType, StrategyCatalogItem } from "@/lib/types";
 
 export const STRATEGY_CATALOG: StrategyCatalogItem[] = [
   {
@@ -135,12 +135,12 @@ export const STRATEGY_CATALOG: StrategyCatalogItem[] = [
 
 /** Look up a catalog item by strategy type. */
 export function getCatalogItem(
-  type: StrategyType
+  type: BuiltInStrategyType
 ): StrategyCatalogItem | undefined {
   return STRATEGY_CATALOG.find((item) => item.type === type);
 }
 
 /** Strategy type → human-readable label map for quick lookups. */
-export const STRATEGY_LABELS: Record<StrategyType, string> = Object.fromEntries(
+export const STRATEGY_LABELS: Record<BuiltInStrategyType, string> = Object.fromEntries(
   STRATEGY_CATALOG.map((item) => [item.type, item.label])
-) as Record<StrategyType, string>;
+) as Record<BuiltInStrategyType, string>;

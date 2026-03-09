@@ -2,15 +2,22 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { PencilLine, Plus, Save, Trash2 } from "lucide-react";
+import type { CustomStrategyValidationIssue } from "@/lib/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   addCustomIndicator,
+  addCustomRuleCondition,
+  addCustomRuleGroup,
   createEmptyCustomStrategyDraft,
   removeCustomIndicator,
+  removeCustomRuleNode,
   setBuilderMode,
   setCustomStrategyDraft,
   updateCustomIndicatorLabel,
   updateCustomIndicatorParam,
+  updateCustomRuleConditionComparator,
+  updateCustomRuleConditionOperand,
+  updateCustomRuleGroupOperator,
   updateCustomStrategyMeta,
 } from "@/store/slices/strategyBuilderSlice";
 import {
@@ -23,6 +30,7 @@ import {
   getCustomIndicatorCatalogItem,
 } from "@/lib/custom-indicator-catalog";
 import type { CustomStrategyDefinitionRecord } from "@/lib/types";
+import { validateCustomStrategyBuilderDraft } from "@/lib/validations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +44,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CustomStrategyIndicatorLibrary } from "@/components/custom-strategy/custom-strategy-indicator-library";
+import { CustomStrategyRuleBuilder } from "@/components/custom-strategy/custom-strategy-rule-builder";
 
 interface CustomStrategyBuilderWorkspaceProps {
   initialDefinitions: CustomStrategyDefinitionRecord[];
@@ -49,6 +58,52 @@ function sortDefinitions(
     (left, right) =>
       new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
   );
+}
+
+function formatValidationIssue(issue: CustomStrategyValidationIssue): string {
+  if (issue.section) {
+    const sectionLabelMap: Record<
+      "longEntry" | "longExit" | "shortEntry" | "shortExit",
+      string
+    > = {
+      longEntry: "Long entry",
+      longExit: "Long exit",
+      shortEntry: "Short entry",
+      shortExit: "Short exit",
+    };
+    const sectionLabel = issue.section ? sectionLabelMap[issue.section] : "Rule";
+    const numericPath = issue.path.filter(
+      (segment): segment is number => typeof segment === "number",
+    );
+
+    if (issue.conditionIndex !== undefined && numericPath.length > 0) {
+      return `${sectionLabel} condition ${numericPath
+        .map((segment) => segment + 1)
+        .join(".")}: ${issue.message}`;
+    }
+
+    if (numericPath.length > 0) {
+      return `${sectionLabel} group ${numericPath
+        .map((segment) => segment + 1)
+        .join(".")}: ${issue.message}`;
+    }
+
+    return `${sectionLabel}: ${issue.message}`;
+  }
+
+  if (issue.path[0] === "name") {
+    return `Strategy name: ${issue.message}`;
+  }
+
+  if (issue.path[0] === "description") {
+    return `Description: ${issue.message}`;
+  }
+
+  if (issue.path[0] === "indicators") {
+    return `Indicators: ${issue.message}`;
+  }
+
+  return issue.message;
 }
 
 export function CustomStrategyBuilderWorkspace({
@@ -71,6 +126,7 @@ export function CustomStrategyBuilderWorkspace({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const validationIssues = validateCustomStrategyBuilderDraft(customStrategy);
 
   useEffect(() => {
     dispatch(setBuilderMode("CUSTOM"));
@@ -101,6 +157,12 @@ export function CustomStrategyBuilderWorkspace({
   };
 
   const handleSave = () => {
+    if (validationIssues.length > 0) {
+      setStatusMessage(null);
+      setErrorMessage("Resolve the validation issues before saving this draft.");
+      return;
+    }
+
     startTransition(async () => {
       setStatusMessage(null);
       setErrorMessage(null);
@@ -210,8 +272,8 @@ export function CustomStrategyBuilderWorkspace({
               {selectedId ? "Edit Custom Draft" : "Create Custom Draft"}
             </CardTitle>
             <CardDescription>
-              This page now covers draft identity, indicator selection, and
-              persistence. Rule editing is the next slice.
+              This page now supports draft metadata, indicator configuration,
+              rule editing, and builder-side validation feedback.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -269,11 +331,73 @@ export function CustomStrategyBuilderWorkspace({
               disabled={isPending}
             />
 
+            <CustomStrategyRuleBuilder
+              indicators={customStrategy.indicators}
+              groups={{
+                longEntry: customStrategy.longEntry,
+                longExit: customStrategy.longExit,
+                shortEntry: customStrategy.shortEntry,
+                shortExit: customStrategy.shortExit,
+              }}
+              validationIssues={validationIssues}
+              onAddCondition={(section, path) =>
+                dispatch(addCustomRuleCondition({ section, path }))
+              }
+              onAddGroup={(section, path) =>
+                dispatch(addCustomRuleGroup({ section, path }))
+              }
+              onRemoveNode={(section, path) =>
+                dispatch(removeCustomRuleNode({ section, path }))
+              }
+              onChangeComparator={(section, path, comparator) =>
+                dispatch(
+                  updateCustomRuleConditionComparator({
+                    section,
+                    path,
+                    comparator,
+                  }),
+                )
+              }
+              onChangeOperator={(section, path, operator) =>
+                dispatch(updateCustomRuleGroupOperator({ section, path, operator }))
+              }
+              onChangeOperand={(section, path, side, operand) =>
+                dispatch(
+                  updateCustomRuleConditionOperand({
+                    section,
+                    path,
+                    side,
+                    operand,
+                  }),
+                )
+              }
+              disabled={isPending}
+            />
+
             <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-              Rule composition and optimization exposure are still pending. This
-              step adds a reusable indicator catalog so saved drafts now carry
-              concrete indicator definitions instead of metadata only.
+              Top-level rule sections can stay empty while drafting. Once you
+              add a nested group, it must contain at least one condition before
+              the draft can be saved.
             </div>
+
+            {validationIssues.length > 0 && (
+              <div
+                className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200"
+                data-testid="custom-builder-validation-summary"
+              >
+                <p className="font-medium">Resolve these validation issues before saving:</p>
+                <ul className="mt-2 list-disc pl-5">
+                  {validationIssues.map((issue, index) => (
+                    <li
+                      key={`${issue.path.join(".")}-${index}`}
+                      data-testid={`custom-builder-validation-issue-${index}`}
+                    >
+                      {formatValidationIssue(issue)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {errorMessage && (
               <div

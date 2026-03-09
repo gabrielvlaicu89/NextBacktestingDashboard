@@ -17,8 +17,10 @@ import {
   resetBuilder,
 } from "@/store/slices/strategyBuilderSlice";
 import { useBacktestStream } from "@/hooks/useBacktestStream";
-import { backtestRequestSchema } from "@/lib/validations";
-import type { StrategyType } from "@/lib/types";
+import {
+  backtestRequestSchema,
+} from "@/lib/validations";
+import type { BuiltInStrategyType } from "@/lib/types";
 
 import { TickerSearch } from "@/components/strategy-builder/ticker-search";
 import { DateRangePicker } from "@/components/strategy-builder/date-range-picker";
@@ -44,12 +46,74 @@ export function StrategyBuilderForm({
   const backtestStatus = useAppSelector((s: import("@/store/store").RootState) => s.backtest.status);
   const { startBacktest } = useBacktestStream();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [customRuntimeIssues, setCustomRuntimeIssues] = useState<string[]>([]);
   const [onboardingOpen, setOnboardingOpen] = useState(showOnboarding);
 
   const isRunning = backtestStatus === "running";
+  const isCustomMode = builder.builderMode === "CUSTOM";
 
   const handleRun = useCallback(async () => {
+    if (isCustomMode) {
+      const payload = {
+        strategy_type: "CUSTOM" as const,
+        ticker: builder.ticker,
+        date_from: builder.dateFrom,
+        date_to: builder.dateTo,
+        benchmark: builder.benchmark,
+        risk_settings: builder.riskSettings,
+        parameters: {
+          custom_definition: builder.customStrategy,
+        },
+      };
+
+      const result = backtestRequestSchema.safeParse(payload);
+
+      if (!result.success) {
+        const errors: Record<string, string> = {};
+        const runtimeIssues: string[] = [];
+
+        for (const issue of result.error.errors) {
+          const isCustomRuntimeIssue =
+            issue.path[0] === "parameters" && issue.path[1] === "custom_definition";
+
+          if (isCustomRuntimeIssue) {
+            runtimeIssues.push(issue.message);
+            continue;
+          }
+
+          const key = issue.path.join(".");
+          if (!errors[key]) {
+            errors[key] = issue.message;
+          }
+        }
+
+        setFieldErrors(errors);
+        setCustomRuntimeIssues([...new Set(runtimeIssues)]);
+        toast.error("Please fix the validation errors below");
+        return;
+      }
+
+      setCustomRuntimeIssues([]);
+      setFieldErrors({});
+
+      await startBacktest({
+        name: builder.name || builder.customStrategy.name || undefined,
+        tags: builder.tags,
+        strategy_type: "CUSTOM",
+        ticker: builder.ticker,
+        date_from: builder.dateFrom,
+        date_to: builder.dateTo,
+        benchmark: builder.benchmark,
+        risk_settings: { ...builder.riskSettings },
+        parameters: {
+          custom_definition: builder.customStrategy,
+        },
+      });
+      return;
+    }
+
     setFieldErrors({});
+    setCustomRuntimeIssues([]);
 
     // Validate form state
     const payload = {
@@ -76,19 +140,20 @@ export function StrategyBuilderForm({
 
     await startBacktest({
       name: builder.name || undefined,
-      strategy_type: result.data.strategy_type,
+      strategy_type: String(result.data.strategy_type),
       ticker: result.data.ticker,
       date_from: result.data.date_from,
       date_to: result.data.date_to,
       benchmark: result.data.benchmark,
-      risk_settings: result.data.risk_settings as Record<string, unknown>,
+      risk_settings: { ...result.data.risk_settings },
       parameters: result.data.parameters,
     });
-  }, [builder, startBacktest]);
+  }, [builder, isCustomMode, startBacktest]);
 
   const handleReset = useCallback(() => {
     dispatch(resetBuilder());
     setFieldErrors({});
+    setCustomRuntimeIssues([]);
   }, [dispatch]);
 
   return (
@@ -103,7 +168,9 @@ export function StrategyBuilderForm({
             New Backtest
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Configure and run a trading strategy backtest.
+            {isCustomMode
+              ? "Review runtime inputs for the selected custom draft."
+              : "Configure and run a trading strategy backtest."}
           </p>
         </div>
         <Button
@@ -130,6 +197,51 @@ export function StrategyBuilderForm({
           data-testid="strategy-name-input"
         />
       </section>
+
+      {isCustomMode && (
+        <section
+          className="space-y-3 rounded-lg border bg-muted/20 p-4"
+          data-testid="custom-strategy-runtime-summary"
+        >
+          <div>
+            <Label className="text-base font-semibold">
+              Selected Custom Strategy
+            </Label>
+            <p
+              className="mt-2 text-sm font-medium"
+              data-testid="selected-custom-strategy-name"
+            >
+              {builder.customStrategy.name || "Untitled custom strategy"}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {builder.customStrategy.description ||
+                "No description saved for this draft yet."}
+            </p>
+          </div>
+          {builder.tags.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Tags: {builder.tags.join(", ")}
+            </p>
+          )}
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid="custom-strategy-runtime-notice"
+          >
+            Runtime inputs on this page now follow the selected saved draft.
+            Custom execution currently supports long-entry and long-exit rules.
+          </p>
+          {customRuntimeIssues.length > 0 && (
+            <div
+              className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
+              data-testid="custom-strategy-runtime-errors"
+            >
+              {customRuntimeIssues.map((issue) => (
+                <p key={issue}>{issue}</p>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Ticker Selection */}
       <section>
@@ -162,26 +274,30 @@ export function StrategyBuilderForm({
       </section>
 
       {/* Strategy Type */}
-      <section>
-        <StrategyTypeSelector
-          value={builder.strategyType}
-          onChange={(type: StrategyType) => dispatch(setStrategyType(type))}
-          disabled={isRunning}
-        />
-      </section>
+      {!isCustomMode && (
+        <>
+          <section>
+            <StrategyTypeSelector
+              value={builder.strategyType}
+              onChange={(type: BuiltInStrategyType) => dispatch(setStrategyType(type))}
+              disabled={isRunning}
+            />
+          </section>
 
-      {/* Strategy Parameters */}
-      <section className="space-y-2">
-        <Label>Strategy Parameters</Label>
-        <StrategyParamsForm
-          strategyType={builder.strategyType}
-          parameters={builder.parameters}
-          onParameterChange={(key, value) =>
-            dispatch(setParameter({ key, value }))
-          }
-          disabled={isRunning}
-        />
-      </section>
+          {/* Strategy Parameters */}
+          <section className="space-y-2">
+            <Label>Strategy Parameters</Label>
+            <StrategyParamsForm
+              strategyType={builder.strategyType}
+              parameters={builder.parameters}
+              onParameterChange={(key, value) =>
+                dispatch(setParameter({ key, value }))
+              }
+              disabled={isRunning}
+            />
+          </section>
+        </>
+      )}
 
       {/* Risk Settings */}
       <section className="space-y-2">
@@ -224,7 +340,11 @@ export function StrategyBuilderForm({
       )}
 
       {/* Run Button */}
-      <RunButton onRun={handleRun} disabled={isRunning} />
+      <RunButton
+        onRun={handleRun}
+        disabled={isRunning}
+        label={isCustomMode ? "Run Custom Backtest" : undefined}
+      />
     </div>
   );
 }

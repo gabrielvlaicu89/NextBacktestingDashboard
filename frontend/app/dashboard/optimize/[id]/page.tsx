@@ -11,6 +11,7 @@ import { ArrowLeft } from "lucide-react";
 import { getStrategy } from "@/lib/actions/strategies";
 import { getCatalogItem } from "@/lib/strategy-catalog";
 import { OptimizeClient } from "@/components/optimization/optimize-client";
+import type { BuiltInStrategyType } from "@/lib/types";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -21,6 +22,10 @@ export default async function OptimizePage({ params }: PageProps) {
 
   const strategy = await getStrategy(id);
   if (!strategy) notFound();
+  if (strategy.type === "CUSTOM") notFound();
+  const optimizableStrategy = strategy as typeof strategy & {
+    type: BuiltInStrategyType;
+  };
 
   const catalog = getCatalogItem(strategy.type);
   if (!catalog) notFound();
@@ -47,7 +52,7 @@ export default async function OptimizePage({ params }: PageProps) {
       </div>
 
       {/* Client-side orchestrator */}
-      <OptimizeClient strategy={strategy} catalog={catalog} />
+      <OptimizeClient strategy={optimizableStrategy} catalog={catalog} />
     </div>
   );
 }

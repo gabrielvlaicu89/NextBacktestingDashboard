@@ -4,12 +4,18 @@
 import { describe, it, expect } from "vitest";
 import {
   addCustomIndicator,
+  addCustomRuleCondition,
+  addCustomRuleGroup,
   DEFAULT_STRATEGY_START_DATE,
   removeCustomIndicator,
+  removeCustomRuleNode,
   setBuilderMode,
   setCustomStrategyDraft,
   updateCustomIndicatorLabel,
   updateCustomIndicatorParam,
+  updateCustomRuleConditionComparator,
+  updateCustomRuleConditionOperand,
+  updateCustomRuleGroupOperator,
   updateCustomStrategyMeta,
   strategyBuilderReducer,
   setTicker,
@@ -226,6 +232,176 @@ describe("strategyBuilderSlice", () => {
     );
 
     expect(state.customStrategy.indicators).toEqual([]);
+  });
+
+  it("addCustomRuleCondition appends a condition to the requested rule group", () => {
+    const withIndicator = strategyBuilderReducer(
+      initial,
+      addCustomIndicator({
+        id: "rsi-1",
+        indicatorId: "RSI",
+        label: "RSI 14",
+        params: { period: 14 },
+      }),
+    );
+
+    const state = strategyBuilderReducer(
+      withIndicator,
+      addCustomRuleCondition({ section: "longEntry", path: [] }),
+    );
+
+    expect(state.customStrategy.longEntry.conditions).toHaveLength(1);
+    expect(state.customStrategy.longEntry.conditions[0]).toEqual({
+      type: "condition",
+      left: { kind: "indicator", indicatorId: "rsi-1" },
+      comparator: ">",
+      right: { kind: "constant", value: 0 },
+    });
+  });
+
+  it("updateCustomRuleGroupOperator updates a rule group's boolean operator", () => {
+    const state = strategyBuilderReducer(
+      initial,
+      updateCustomRuleGroupOperator({ section: "longExit", path: [], operator: "OR" }),
+    );
+
+    expect(state.customStrategy.longExit.operator).toBe("OR");
+  });
+
+  it("updateCustomRuleConditionComparator updates an existing rule condition comparator", () => {
+    const withCondition = strategyBuilderReducer(
+      initial,
+      addCustomRuleCondition({ section: "shortEntry", path: [] }),
+    );
+
+    const state = strategyBuilderReducer(
+      withCondition,
+      updateCustomRuleConditionComparator({
+        section: "shortEntry",
+        path: [0],
+        comparator: "crosses_below",
+      }),
+    );
+
+    expect(
+      state.customStrategy.shortEntry.conditions[0]?.type === "condition"
+        ? state.customStrategy.shortEntry.conditions[0].comparator
+        : null,
+    ).toBe("crosses_below");
+  });
+
+  it("updateCustomRuleConditionOperand updates a rule condition operand", () => {
+    const withCondition = strategyBuilderReducer(
+      initial,
+      addCustomRuleCondition({ section: "longExit", path: [] }),
+    );
+
+    const state = strategyBuilderReducer(
+      withCondition,
+      updateCustomRuleConditionOperand({
+        section: "longExit",
+        path: [0],
+        side: "right",
+        operand: { kind: "price", field: "HIGH" },
+      }),
+    );
+
+    expect(state.customStrategy.longExit.conditions[0]).toEqual({
+      type: "condition",
+      left: { kind: "price", field: "CLOSE" },
+      comparator: ">",
+      right: { kind: "price", field: "HIGH" },
+    });
+  });
+
+  it("removeCustomRuleNode removes a condition from the chosen rule group", () => {
+    const withCondition = strategyBuilderReducer(
+      initial,
+      addCustomRuleCondition({ section: "shortExit", path: [] }),
+    );
+
+    const state = strategyBuilderReducer(
+      withCondition,
+      removeCustomRuleNode({ section: "shortExit", path: [0] }),
+    );
+
+    expect(state.customStrategy.shortExit.conditions).toEqual([]);
+  });
+
+  it("addCustomRuleGroup appends a nested group to the requested section", () => {
+    const state = strategyBuilderReducer(
+      initial,
+      addCustomRuleGroup({ section: "longEntry", path: [] }),
+    );
+
+    expect(state.customStrategy.longEntry.conditions).toEqual([
+      {
+        type: "group",
+        operator: "AND",
+        conditions: [],
+      },
+    ]);
+  });
+
+  it("can add a nested condition inside an existing subgroup", () => {
+    const withGroup = strategyBuilderReducer(
+      initial,
+      addCustomRuleGroup({ section: "longEntry", path: [] }),
+    );
+
+    const state = strategyBuilderReducer(
+      withGroup,
+      addCustomRuleCondition({ section: "longEntry", path: [0] }),
+    );
+
+    expect(state.customStrategy.longEntry.conditions[0]).toEqual({
+      type: "group",
+      operator: "AND",
+      conditions: [
+        {
+          type: "condition",
+          left: { kind: "price", field: "CLOSE" },
+          comparator: ">",
+          right: { kind: "constant", value: 0 },
+        },
+      ],
+    });
+  });
+
+  it("updates a nested subgroup operator using its node path", () => {
+    const withGroup = strategyBuilderReducer(
+      initial,
+      addCustomRuleGroup({ section: "shortEntry", path: [] }),
+    );
+
+    const state = strategyBuilderReducer(
+      withGroup,
+      updateCustomRuleGroupOperator({
+        section: "shortEntry",
+        path: [0],
+        operator: "OR",
+      }),
+    );
+
+    expect(state.customStrategy.shortEntry.conditions[0]).toEqual({
+      type: "group",
+      operator: "OR",
+      conditions: [],
+    });
+  });
+
+  it("removeCustomRuleNode removes a nested subgroup by path", () => {
+    const withGroup = strategyBuilderReducer(
+      initial,
+      addCustomRuleGroup({ section: "shortExit", path: [] }),
+    );
+
+    const state = strategyBuilderReducer(
+      withGroup,
+      removeCustomRuleNode({ section: "shortExit", path: [0] }),
+    );
+
+    expect(state.customStrategy.shortExit.conditions).toEqual([]);
   });
 
   it("setParameter adds a single parameter", () => {

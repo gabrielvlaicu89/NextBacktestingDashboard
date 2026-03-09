@@ -7,7 +7,7 @@
  * input controls (number, select, ticker search).
  */
 import { getCatalogItem } from "@/lib/strategy-catalog";
-import type { StrategyType } from "@/lib/types";
+import type { BuiltInStrategyType } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,7 +20,7 @@ import {
 import { TickerSearch } from "@/components/strategy-builder/ticker-search";
 
 interface StrategyParamsFormProps {
-  strategyType: StrategyType | null;
+  strategyType: BuiltInStrategyType | null;
   parameters: Record<string, unknown>;
   onParameterChange: (key: string, value: unknown) => void;
   disabled?: boolean;

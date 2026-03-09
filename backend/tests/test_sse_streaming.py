@@ -192,6 +192,73 @@ class TestBacktestSSE:
         )
         assert response.status_code == 422
 
+    @patch("app.routers.backtest.fetch_ohlcv", side_effect=_mock_ohlcv)
+    def test_custom_short_rules_emit_sse_error(self, mock_fetch, client):
+        """Custom strategies with short-side rules return an SSE error event."""
+        response = client.post(
+            "/api/backtest/run",
+            json={
+                "strategy_type": "CUSTOM",
+                "ticker": "SPY",
+                "date_from": "2024-01-01",
+                "date_to": "2024-12-31",
+                "parameters": {
+                    "custom_definition": {
+                        "version": 1,
+                        "name": "Short Draft",
+                        "description": "Unsupported short-side custom draft.",
+                        "indicators": [],
+                        "longEntry": {
+                            "type": "group",
+                            "operator": "AND",
+                            "conditions": [
+                                {
+                                    "type": "condition",
+                                    "left": {"kind": "price", "field": "CLOSE"},
+                                    "comparator": ">",
+                                    "right": {"kind": "constant", "value": 100},
+                                }
+                            ],
+                        },
+                        "longExit": {
+                            "type": "group",
+                            "operator": "AND",
+                            "conditions": [
+                                {
+                                    "type": "condition",
+                                    "left": {"kind": "price", "field": "CLOSE"},
+                                    "comparator": "<",
+                                    "right": {"kind": "constant", "value": 99},
+                                }
+                            ],
+                        },
+                        "shortEntry": {
+                            "type": "group",
+                            "operator": "AND",
+                            "conditions": [
+                                {
+                                    "type": "condition",
+                                    "left": {"kind": "price", "field": "CLOSE"},
+                                    "comparator": "<",
+                                    "right": {"kind": "constant", "value": 98},
+                                }
+                            ],
+                        },
+                        "shortExit": {
+                            "type": "group",
+                            "operator": "AND",
+                            "conditions": [],
+                        },
+                    }
+                },
+            },
+        )
+
+        assert response.status_code == 200
+        events = _parse_sse(response.text)
+        error_event = next(e for e in events if e["type"] == "error")
+        assert "long-entry and long-exit rules only" in error_event["message"]
+
 
 # ── Optimize SSE ────────────────────────────────────────────────────────────────
 

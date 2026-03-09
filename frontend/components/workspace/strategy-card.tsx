@@ -33,9 +33,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toggleStrategy } from "@/store/slices/comparisonSlice";
 import { removeStrategy } from "@/store/slices/workspaceSlice";
-import { prefillFromStrategy } from "@/store/slices/strategyBuilderSlice";
+import {
+  prefillFromStrategy,
+  resetBuilder,
+  setBenchmark,
+  setCustomStrategyDraft,
+  setDateRange,
+  setName,
+  setRiskSettings,
+  setTags,
+  setTicker,
+} from "@/store/slices/strategyBuilderSlice";
 import { deleteStrategy } from "@/lib/actions/strategies";
-import type { StrategyWithRuns } from "@/lib/types";
+import type { CustomStrategyDefinition, StrategyWithRuns } from "@/lib/types";
 import type { RootState } from "@/store/store";
 
 // ── Strategy type labels ──────────────────────────────────────────────────────
@@ -46,6 +56,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   EARNINGS_DRIFT: "Earnings Drift",
   PAIRS_TRADING: "Pairs Trading",
   BUY_AND_HOLD: "Buy & Hold",
+  CUSTOM: "Custom Strategy",
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -73,6 +84,33 @@ export function StrategyCard({ strategy }: StrategyCardProps) {
   };
 
   const handleDuplicate = () => {
+    if (strategy.type === "CUSTOM") {
+      const customDefinition = strategy.parameters.custom_definition as
+        | CustomStrategyDefinition
+        | undefined;
+
+      if (!customDefinition) {
+        toast.error("This custom strategy is missing its saved definition snapshot");
+        return;
+      }
+
+      dispatch(resetBuilder());
+      dispatch(setCustomStrategyDraft(customDefinition));
+      dispatch(setTicker(strategy.ticker));
+      dispatch(
+        setDateRange({
+          from: strategy.dateFrom,
+          to: strategy.dateTo,
+        }),
+      );
+      dispatch(setRiskSettings(strategy.riskSettings));
+      dispatch(setBenchmark(strategy.benchmark));
+      dispatch(setName(`${strategy.name} (Copy)`));
+      dispatch(setTags(strategy.tags));
+      router.push("/dashboard/new");
+      return;
+    }
+
     dispatch(
       prefillFromStrategy({
         ticker: strategy.ticker,
