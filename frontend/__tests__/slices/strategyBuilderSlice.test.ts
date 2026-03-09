@@ -3,7 +3,14 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  addCustomIndicator,
   DEFAULT_STRATEGY_START_DATE,
+  removeCustomIndicator,
+  setBuilderMode,
+  setCustomStrategyDraft,
+  updateCustomIndicatorLabel,
+  updateCustomIndicatorParam,
+  updateCustomStrategyMeta,
   strategyBuilderReducer,
   setTicker,
   setDateRange,
@@ -32,8 +39,19 @@ const initial: StrategyBuilderState = {
   ticker: "",
   dateFrom: DEFAULT_STRATEGY_START_DATE,
   dateTo: getTodayDateString(),
+  builderMode: "BUILT_IN",
   strategyType: null,
   parameters: {},
+  customStrategy: {
+    version: 1,
+    name: "",
+    description: "",
+    indicators: [],
+    longEntry: { type: "group", operator: "AND", conditions: [] },
+    longExit: { type: "group", operator: "AND", conditions: [] },
+    shortEntry: { type: "group", operator: "AND", conditions: [] },
+    shortExit: { type: "group", operator: "AND", conditions: [] },
+  },
   riskSettings: DEFAULT_RISK_SETTINGS,
   benchmark: "SPY",
   name: "",
@@ -61,10 +79,153 @@ describe("strategyBuilderSlice", () => {
   });
 
   it("setStrategyType updates type and resets parameters", () => {
-    const withParams = { ...initial, parameters: { zscore_window: 20 } };
+    const withParams = {
+      ...initial,
+      builderMode: "CUSTOM" as const,
+      parameters: { zscore_window: 20 },
+    };
     const state = strategyBuilderReducer(withParams, setStrategyType("MA_CROSSOVER"));
+    expect(state.builderMode).toBe("BUILT_IN");
     expect(state.strategyType).toBe("MA_CROSSOVER");
     expect(state.parameters).toEqual({});
+  });
+
+  it("setBuilderMode switches between built-in and custom modes", () => {
+    const state = strategyBuilderReducer(initial, setBuilderMode("CUSTOM"));
+    expect(state.builderMode).toBe("CUSTOM");
+  });
+
+  it("setCustomStrategyDraft stores a full custom draft and switches to custom mode", () => {
+    const customDraft = {
+      version: 1 as const,
+      name: "Custom RSI Reversal",
+      description: "Test draft",
+      indicators: [
+        {
+          id: "rsi-1",
+          indicatorId: "RSI",
+          label: "RSI 14",
+          params: { period: 14 },
+        },
+      ],
+      longEntry: {
+        type: "group" as const,
+        operator: "AND" as const,
+        conditions: [],
+      },
+      longExit: {
+        type: "group" as const,
+        operator: "AND" as const,
+        conditions: [],
+      },
+      shortEntry: {
+        type: "group" as const,
+        operator: "AND" as const,
+        conditions: [],
+      },
+      shortExit: {
+        type: "group" as const,
+        operator: "AND" as const,
+        conditions: [],
+      },
+    };
+
+    const state = strategyBuilderReducer(initial, setCustomStrategyDraft(customDraft));
+    expect(state.builderMode).toBe("CUSTOM");
+    expect(state.customStrategy).toEqual(customDraft);
+  });
+
+  it("updateCustomStrategyMeta updates the custom draft name and description", () => {
+    const state = strategyBuilderReducer(
+      initial,
+      updateCustomStrategyMeta({
+        name: "Custom Mean Reversion",
+        description: "Uses RSI and price conditions.",
+      }),
+    );
+
+    expect(state.builderMode).toBe("CUSTOM");
+    expect(state.customStrategy.name).toBe("Custom Mean Reversion");
+    expect(state.customStrategy.description).toBe("Uses RSI and price conditions.");
+  });
+
+  it("addCustomIndicator appends an indicator to the custom draft", () => {
+    const state = strategyBuilderReducer(
+      initial,
+      addCustomIndicator({
+        id: "rsi-1",
+        indicatorId: "RSI",
+        label: "RSI 14",
+        params: { period: 14 },
+      }),
+    );
+
+    expect(state.builderMode).toBe("CUSTOM");
+    expect(state.customStrategy.indicators).toEqual([
+      {
+        id: "rsi-1",
+        indicatorId: "RSI",
+        label: "RSI 14",
+        params: { period: 14 },
+      },
+    ]);
+  });
+
+  it("updateCustomIndicatorLabel changes the label of an existing indicator", () => {
+    const withIndicator = strategyBuilderReducer(
+      initial,
+      addCustomIndicator({
+        id: "rsi-1",
+        indicatorId: "RSI",
+        label: "RSI 14",
+        params: { period: 14 },
+      }),
+    );
+
+    const state = strategyBuilderReducer(
+      withIndicator,
+      updateCustomIndicatorLabel({ id: "rsi-1", label: "RSI Fast" }),
+    );
+
+    expect(state.customStrategy.indicators[0]?.label).toBe("RSI Fast");
+  });
+
+  it("updateCustomIndicatorParam changes the params of an existing indicator", () => {
+    const withIndicator = strategyBuilderReducer(
+      initial,
+      addCustomIndicator({
+        id: "rsi-1",
+        indicatorId: "RSI",
+        label: "RSI 14",
+        params: { period: 14 },
+      }),
+    );
+
+    const state = strategyBuilderReducer(
+      withIndicator,
+      updateCustomIndicatorParam({ id: "rsi-1", key: "period", value: 21 }),
+    );
+
+    expect(state.customStrategy.indicators[0]?.params).toEqual({ period: 21 });
+  });
+
+  it("removeCustomIndicator removes the indicator from the custom draft", () => {
+    const withIndicator = strategyBuilderReducer(
+      initial,
+      addCustomIndicator({
+        id: "rsi-1",
+        indicatorId: "RSI",
+        label: "RSI 14",
+        params: { period: 14 },
+      }),
+    );
+
+    const state = strategyBuilderReducer(
+      withIndicator,
+      removeCustomIndicator("rsi-1"),
+    );
+
+    expect(state.customStrategy.indicators).toEqual([]);
   });
 
   it("setParameter adds a single parameter", () => {
@@ -112,8 +273,10 @@ describe("strategyBuilderSlice", () => {
       ticker: "MSFT",
       dateFrom: "2023-01-01",
       dateTo: "2023-12-31",
+      builderMode: "BUILT_IN" as const,
       strategyType: "MEAN_REVERSION" as const,
       parameters: { zscore_window: 15 },
+      customStrategy: initial.customStrategy,
       riskSettings: { ...DEFAULT_RISK_SETTINGS, starting_capital: 25_000 },
       benchmark: "SPY",
       name: "Duplicated",
@@ -124,7 +287,16 @@ describe("strategyBuilderSlice", () => {
   });
 
   it("resetBuilder returns to initial state", () => {
-    const modified = { ...initial, ticker: "GOOG", name: "Test" };
+    const modified = {
+      ...initial,
+      ticker: "GOOG",
+      name: "Test",
+      builderMode: "CUSTOM" as const,
+      customStrategy: {
+        ...initial.customStrategy,
+        name: "Draft",
+      },
+    };
     const state = strategyBuilderReducer(modified, resetBuilder());
     expect(state).toEqual(initial);
   });

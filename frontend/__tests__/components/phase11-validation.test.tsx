@@ -9,6 +9,17 @@ import { StrategyBuilderForm } from "@/components/strategy-builder/strategy-buil
 import { renderWithStore } from "@/__tests__/helpers/render-with-store";
 import { toast } from "sonner";
 
+const EMPTY_CUSTOM_STRATEGY = {
+  version: 1 as const,
+  name: "",
+  description: "",
+  indicators: [],
+  longEntry: { type: "group" as const, operator: "AND" as const, conditions: [] },
+  longExit: { type: "group" as const, operator: "AND" as const, conditions: [] },
+  shortEntry: { type: "group" as const, operator: "AND" as const, conditions: [] },
+  shortExit: { type: "group" as const, operator: "AND" as const, conditions: [] },
+};
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -58,8 +69,10 @@ describe("StrategyBuilderForm — inline validation errors", () => {
           ticker: "",
           dateFrom: "2024-01-01",
           dateTo: "2024-12-31",
+          builderMode: "BUILT_IN",
           strategyType: "MEAN_REVERSION",
           parameters: {},
+          customStrategy: EMPTY_CUSTOM_STRATEGY,
           riskSettings: {
             starting_capital: 10000,
             position_sizing_mode: "PERCENT_PORTFOLIO",
@@ -92,8 +105,10 @@ describe("StrategyBuilderForm — inline validation errors", () => {
           ticker: "SPY",
           dateFrom: "2024-12-31",
           dateTo: "2024-01-01",
+          builderMode: "BUILT_IN",
           strategyType: "MEAN_REVERSION",
           parameters: {},
+          customStrategy: EMPTY_CUSTOM_STRATEGY,
           riskSettings: {
             starting_capital: 10000,
             position_sizing_mode: "PERCENT_PORTFOLIO",
@@ -126,8 +141,10 @@ describe("StrategyBuilderForm — inline validation errors", () => {
           ticker: "",
           dateFrom: "2024-01-01",
           dateTo: "2024-12-31",
+          builderMode: "BUILT_IN",
           strategyType: "MEAN_REVERSION",
           parameters: {},
+          customStrategy: EMPTY_CUSTOM_STRATEGY,
           riskSettings: {
             starting_capital: 10000,
             position_sizing_mode: "PERCENT_PORTFOLIO",
@@ -160,8 +177,10 @@ describe("StrategyBuilderForm — inline validation errors", () => {
           ticker: "",
           dateFrom: "2024-01-01",
           dateTo: "2024-12-31",
+          builderMode: "BUILT_IN",
           strategyType: "MEAN_REVERSION",
           parameters: {},
+          customStrategy: EMPTY_CUSTOM_STRATEGY,
           riskSettings: {
             starting_capital: 10000,
             position_sizing_mode: "PERCENT_PORTFOLIO",
@@ -193,8 +212,10 @@ describe("StrategyBuilderForm — inline validation errors", () => {
           ticker: "",
           dateFrom: "2024-01-01",
           dateTo: "2024-12-31",
+          builderMode: "BUILT_IN",
           strategyType: "MEAN_REVERSION",
           parameters: {},
+          customStrategy: EMPTY_CUSTOM_STRATEGY,
           riskSettings: {
             starting_capital: 10000,
             position_sizing_mode: "PERCENT_PORTFOLIO",
@@ -231,8 +252,10 @@ describe("StrategyBuilderForm — inline validation errors", () => {
           ticker: "",
           dateFrom: "2024-01-01",
           dateTo: "2024-12-31",
+          builderMode: "BUILT_IN",
           strategyType: "MEAN_REVERSION",
           parameters: {},
+          customStrategy: EMPTY_CUSTOM_STRATEGY,
           riskSettings: {
             starting_capital: 10000,
             position_sizing_mode: "PERCENT_PORTFOLIO",

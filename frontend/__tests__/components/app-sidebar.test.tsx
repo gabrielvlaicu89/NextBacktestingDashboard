@@ -71,16 +71,18 @@ describe("AppSidebar", () => {
     render(<AppSidebar user={mockUser} />);
     const nav = screen.getByRole("navigation");
     const links = nav.querySelectorAll("a");
-    expect(links).toHaveLength(3);
+    expect(links).toHaveLength(4);
     expect(links[0]).toHaveAttribute("href", "/dashboard");
     expect(links[1]).toHaveAttribute("href", "/dashboard/new");
-    expect(links[2]).toHaveAttribute("href", "/dashboard/compare");
+    expect(links[2]).toHaveAttribute("href", "/dashboard/build-custom-stratergy");
+    expect(links[3]).toHaveAttribute("href", "/dashboard/compare");
   });
 
-  it("renders Dashboard, New Backtest, Compare labels", () => {
+  it("renders Dashboard, New Backtest, Build Custom Stratergy, Compare labels", () => {
     render(<AppSidebar user={mockUser} />);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("New Backtest")).toBeInTheDocument();
+    expect(screen.getByText("Build Custom Stratergy")).toBeInTheDocument();
     expect(screen.getByText("Compare")).toBeInTheDocument();
   });
 
@@ -106,6 +108,13 @@ describe("AppSidebar", () => {
     mockPathname.mockReturnValue("/dashboard/new");
     render(<AppSidebar user={mockUser} />);
     const link = screen.getByText("New Backtest").closest("a");
+    expect(link?.className).toContain("bg-sidebar-accent");
+  });
+
+  it("highlights Build Custom Stratergy link when pathname is /dashboard/build-custom-stratergy", () => {
+    mockPathname.mockReturnValue("/dashboard/build-custom-stratergy");
+    render(<AppSidebar user={mockUser} />);
+    const link = screen.getByText("Build Custom Stratergy").closest("a");
     expect(link?.className).toContain("bg-sidebar-accent");
   });
 
@@ -151,11 +160,12 @@ describe("AppSidebar", () => {
     expect(screen.getByTestId("user-name")).toHaveTextContent("User");
   });
 
-  it("exports navItems constant with 3 items", () => {
-    expect(navItems).toHaveLength(3);
+  it("exports navItems constant with 4 items", () => {
+    expect(navItems).toHaveLength(4);
     expect(navItems.map((n) => n.label)).toEqual([
       "Dashboard",
       "New Backtest",
+      "Build Custom Stratergy",
       "Compare",
     ]);
   });

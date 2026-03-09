@@ -12,11 +12,123 @@ export type StrategyType =
   | "PAIRS_TRADING"
   | "BUY_AND_HOLD";
 
+export type StrategyBuilderMode = "BUILT_IN" | "CUSTOM";
+
+export type CustomStrategyDefinitionVersion = 1;
+
 export type RunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
 
 export type PositionSizingMode = "FIXED_DOLLAR" | "PERCENT_PORTFOLIO";
 
 export type MAType = "SMA" | "EMA";
+
+export type RuleGroupOperator = "AND" | "OR";
+
+export type ComparisonOperator =
+  | ">"
+  | ">="
+  | "<"
+  | "<="
+  | "=="
+  | "crosses_above"
+  | "crosses_below";
+
+export type PriceField = "OPEN" | "HIGH" | "LOW" | "CLOSE" | "VOLUME";
+
+export type IndicatorParamValue = string | number | boolean;
+
+export type IndicatorOutputKey = "value" | "upper" | "middle" | "lower" | "histogram";
+
+export type CustomIndicatorParamType = "number" | "select" | "boolean";
+
+export interface CustomIndicatorParamOption {
+  label: string;
+  value: string;
+}
+
+export interface CustomIndicatorParamDefinition {
+  key: string;
+  label: string;
+  type: CustomIndicatorParamType;
+  default: IndicatorParamValue;
+  description?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: CustomIndicatorParamOption[];
+}
+
+export interface CustomIndicatorCatalogItem {
+  id: string;
+  label: string;
+  description: string;
+  category: string;
+  outputs: IndicatorOutputKey[];
+  params: CustomIndicatorParamDefinition[];
+}
+
+export interface IndicatorNode {
+  id: string;
+  indicatorId: string;
+  label: string;
+  params: Record<string, IndicatorParamValue>;
+}
+
+export interface PriceOperand {
+  kind: "price";
+  field: PriceField;
+}
+
+export interface IndicatorOperand {
+  kind: "indicator";
+  indicatorId: string;
+  output?: IndicatorOutputKey;
+}
+
+export interface ConstantOperand {
+  kind: "constant";
+  value: number;
+}
+
+export type RuleOperand = PriceOperand | IndicatorOperand | ConstantOperand;
+
+export interface RuleCondition {
+  type: "condition";
+  left: RuleOperand;
+  comparator: ComparisonOperator;
+  right: RuleOperand;
+}
+
+export interface RuleGroup {
+  type: "group";
+  operator: RuleGroupOperator;
+  conditions: RuleNode[];
+}
+
+export type RuleNode = RuleCondition | RuleGroup;
+
+export interface CustomStrategyDefinition {
+  version: CustomStrategyDefinitionVersion;
+  name: string;
+  description: string;
+  indicators: IndicatorNode[];
+  longEntry: RuleGroup;
+  longExit: RuleGroup;
+  shortEntry: RuleGroup;
+  shortExit: RuleGroup;
+}
+
+export interface CustomStrategyDefinitionRecord {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  definitionVersion: number;
+  definition: CustomStrategyDefinition;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 // ── Sub-models ────────────────────────────────────────────────────────────────
 

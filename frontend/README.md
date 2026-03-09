@@ -6,8 +6,10 @@ It is responsible for:
 
 - Google authentication via NextAuth
 - strategy builder and workspace UI
+- a dedicated custom strategy draft page at `/dashboard/build-custom-stratergy`
 - proxying backtest and optimization requests to the FastAPI backend
 - persisting strategies and run metadata through Prisma
+- persisting saved custom strategy definitions through Prisma for the in-progress custom builder flow
 
 ## Prerequisites
 
@@ -69,6 +71,20 @@ npx prisma migrate deploy
 
 If you are actively changing schema during development, use `npx prisma migrate dev` instead.
 
+Custom strategy persistence note:
+
+- The frontend now includes a `CustomStrategyDefinition` Prisma model for storing saved custom strategy drafts independently from built-in backtest strategies.
+- Saved custom definitions currently use a draft-safe schema, so incomplete rule trees can be saved and reopened before execution support exists.
+- The dedicated custom builder page now includes a local indicator catalog with add/remove flows and parameter editors for saved drafts.
+- The `+ New Backtest` page now lists saved custom strategy drafts and links into the dedicated custom builder page for editing.
+- After pulling schema changes, run Prisma migrations before starting the app so the custom definition table exists locally.
+
+If the generated Prisma client gets out of sync after schema changes, run:
+
+```bash
+npx prisma generate
+```
+
 ### 3. Start Next.js
 
 ```bash
@@ -123,6 +139,15 @@ After startup, verify these flows in order:
 8. Reload the workspace and confirm the saved strategy persists
 9. Run an optimization and confirm progressive results stream in
 
+Custom strategy draft smoke test:
+
+1. Open `/dashboard/build-custom-stratergy`
+2. Add at least one indicator and adjust one indicator parameter
+3. Create a draft name and description, then save
+4. Refresh the page and confirm the saved draft can be reopened with the same indicators
+5. Open `+ New Backtest` and confirm the saved custom strategy appears in the launcher section
+6. Use the edit link and confirm it loads the same saved draft
+
 ## Useful Commands
 
 ```bash
@@ -137,6 +162,9 @@ npm run start
 
 # Run frontend tests
 npm run test
+
+# Regenerate Prisma client after schema changes
+npx prisma generate
 
 # Run eslint
 npm run lint

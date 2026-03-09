@@ -8,6 +8,17 @@ import userEvent from "@testing-library/user-event";
 import { StrategyCard } from "@/components/workspace/strategy-card";
 import { renderWithStore } from "../helpers/render-with-store";
 import type { StrategyWithRuns } from "@/lib/types";
+ 
+const EMPTY_CUSTOM_STRATEGY = {
+  version: 1 as const,
+  name: "",
+  description: "",
+  indicators: [],
+  longEntry: { type: "group" as const, operator: "AND" as const, conditions: [] },
+  longExit: { type: "group" as const, operator: "AND" as const, conditions: [] },
+  shortEntry: { type: "group" as const, operator: "AND" as const, conditions: [] },
+  shortExit: { type: "group" as const, operator: "AND" as const, conditions: [] },
+};
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -136,8 +147,10 @@ describe("Duplicate Flow", () => {
             ticker: "MSFT",
             dateFrom: "2019-01-01",
             dateTo: "2020-01-01",
+            builderMode: "BUILT_IN",
             strategyType: "BUY_AND_HOLD",
             parameters: {},
+            customStrategy: EMPTY_CUSTOM_STRATEGY,
             riskSettings: {
               starting_capital: 10000,
               position_sizing_mode: "PERCENT_PORTFOLIO",
@@ -160,5 +173,7 @@ describe("Duplicate Flow", () => {
     expect(builder.ticker).toBe("AAPL");
     expect(builder.name).toBe("AAPL MA Crossover (Copy)");
     expect(builder.strategyType).toBe("MA_CROSSOVER");
+    expect(builder.builderMode).toBe("BUILT_IN");
+    expect(builder.customStrategy).toEqual(EMPTY_CUSTOM_STRATEGY);
   });
 });

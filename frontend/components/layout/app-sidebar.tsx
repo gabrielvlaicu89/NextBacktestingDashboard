@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Plus,
   GitCompareArrows,
+  PencilRuler,
   TrendingUp,
 } from "lucide-react"
 
@@ -23,6 +24,11 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "New Backtest", href: "/dashboard/new", icon: Plus },
+  {
+    label: "Build Custom Stratergy",
+    href: "/dashboard/build-custom-stratergy",
+    icon: PencilRuler,
+  },
   { label: "Compare", href: "/dashboard/compare", icon: GitCompareArrows },
 ]
 

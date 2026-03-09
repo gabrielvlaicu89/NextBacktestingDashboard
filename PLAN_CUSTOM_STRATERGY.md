@@ -106,24 +106,25 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ### Prisma Schema
 
-- [ ] Design and add a `StrategyDefinition` model in [frontend/prisma/schema.prisma](./frontend/prisma/schema.prisma).
+- [x] Design and add a `CustomStrategyDefinition` model in [frontend/prisma/schema.prisma](./frontend/prisma/schema.prisma).
 - [ ] Decide whether `Strategy` should reference a `StrategyDefinition` or embed a definition snapshot.
-- [ ] Add support for distinguishing built-in strategies from custom strategies.
-- [ ] Add schema version fields for custom definitions.
+- [x] Add support for distinguishing built-in strategies from custom strategies.
+- [x] Add schema version fields for custom definitions.
 - [ ] Add optional result version fields for `BacktestRun` if custom result payloads are extended.
 - [ ] Preserve backward compatibility for existing saved built-in strategies.
 
 ### Migration Work
 
-- [ ] Create Prisma migration(s) for custom strategy support.
+- [x] Create Prisma migration(s) for custom strategy support.
 - [ ] Ensure historical built-in strategies remain readable after migration.
 - [ ] Decide whether existing `Strategy.type` remains enum-backed or moves to a string-based kind model.
 - [ ] Backfill version fields where needed.
 
 ### Serialization Layer
 
+- [x] Add dedicated custom definition CRUD actions in [frontend/lib/actions/custom-strategy-definitions.ts](./frontend/lib/actions/custom-strategy-definitions.ts).
+- [x] Add runtime validation on read, not just on write.
 - [ ] Refactor [frontend/lib/actions/strategies.ts](./frontend/lib/actions/strategies.ts) to serialize/deserialize custom definitions safely.
-- [ ] Add runtime validation on read, not just on write.
 - [ ] Remove unsafe `as` casts where custom strategy definitions or versioned results are involved.
 
 ---
@@ -132,25 +133,26 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ### Frontend Types
 
-- [ ] Extend [frontend/lib/types.ts](./frontend/lib/types.ts) with:
-  - [ ] Custom strategy definition types
-  - [ ] Indicator metadata types
-  - [ ] Rule group types
-  - [ ] Operand types
-  - [ ] Comparison operator types
-  - [ ] Builder mode types
+- [x] Extend [frontend/lib/types.ts](./frontend/lib/types.ts) with:
+  - [x] Custom strategy definition types
+  - [x] Indicator metadata types
+  - [x] Rule group types
+  - [x] Operand types
+  - [x] Comparison operator types
+  - [x] Builder mode types
   - [ ] Custom optimization parameter exposure types
 - [ ] Refactor hardcoded `StrategyType` assumptions where required.
 
 ### Frontend Validation
 
-- [ ] Refactor [frontend/lib/validations.ts](./frontend/lib/validations.ts) to support custom strategy payloads.
+- [x] Refactor [frontend/lib/validations.ts](./frontend/lib/validations.ts) to support custom strategy payloads.
 - [ ] Replace fixed `z.enum(STRATEGY_TYPES)` assumptions where needed.
-- [ ] Add zod schemas for:
-  - [ ] Indicator config
-  - [ ] Rule node
-  - [ ] Rule group
-  - [ ] Custom strategy definition
+- [x] Add zod schemas for:
+  - [x] Indicator config
+  - [x] Rule node
+  - [x] Rule group
+  - [x] Custom strategy definition
+  - [x] Custom definition create/update payloads
   - [ ] Custom optimize request
 
 ### Backend Validation
@@ -281,22 +283,22 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ## Phase 9 — Frontend Builder State Refactor
 
-- [ ] Refactor [frontend/store/slices/strategyBuilderSlice.ts](./frontend/store/slices/strategyBuilderSlice.ts) to support both built-in and custom builder modes.
-- [ ] Add a discriminated builder state shape.
-- [ ] Preserve existing built-in strategy drafting behavior.
-- [ ] Separate state used for the dedicated custom builder page from state used to launch a backtest from `+ New Backtest`.
-- [ ] Add custom draft sub-state for:
-  - [ ] selected indicators
-  - [ ] indicator params
-  - [ ] rule groups
-  - [ ] long-entry rules
-  - [ ] long-exit rules
-  - [ ] short-entry rules
-  - [ ] short-exit rules
+- [x] Refactor [frontend/store/slices/strategyBuilderSlice.ts](./frontend/store/slices/strategyBuilderSlice.ts) to support both built-in and custom builder modes.
+- [x] Add a discriminated builder state shape.
+- [x] Preserve existing built-in strategy drafting behavior.
+- [x] Separate state used for the dedicated custom builder page from state used to launch a backtest from `+ New Backtest`.
+- [x] Add custom draft sub-state for:
+  - [x] selected indicators
+  - [x] indicator params
+  - [x] rule groups
+  - [x] long-entry rules
+  - [x] long-exit rules
+  - [x] short-entry rules
+  - [x] short-exit rules
   - [ ] validation errors
   - [ ] optimization exposure metadata
-- [ ] Ensure duplicate/prefill flows work for both built-in and custom strategies.
-- [ ] Ensure reset behavior works cleanly for custom drafts.
+- [x] Ensure duplicate/prefill flows work for both built-in and custom strategies.
+- [x] Ensure reset behavior works cleanly for custom drafts.
 
 ---
 
@@ -304,18 +306,18 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ### Entry Point & Mode Selection
 
-- [ ] Add a dedicated page for custom strategy authoring, likely under `app/dashboard/build-custom-stratergy/page.tsx`.
+- [x] Add a dedicated page for custom strategy authoring, likely under `app/dashboard/build-custom-stratergy/page.tsx`.
 - [ ] Add any supporting loading/error states for the custom builder page.
-- [ ] Add a `Save` button to persist custom strategy definitions from the dedicated builder page.
-- [ ] Add support for editing an existing saved custom strategy from the dedicated builder page.
-- [ ] Decide whether the page should support query-param or route-param based editing for saved custom strategies.
+- [x] Add a `Save` button to persist custom strategy definitions from the dedicated builder page.
+- [x] Add support for editing an existing saved custom strategy from the dedicated builder page.
+- [x] Decide whether the page should support query-param or route-param based editing for saved custom strategies.
 
 ### Indicator Selection UI
 
 - [ ] Build a searchable indicator library picker.
-- [ ] Group indicators by category.
-- [ ] Let users add/remove multiple indicators.
-- [ ] Show parameter editors based on indicator metadata.
+- [x] Group indicators by category.
+- [x] Let users add/remove multiple indicators.
+- [x] Show parameter editors based on indicator metadata.
 
 ### Rule Builder UI
 
@@ -333,17 +335,17 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ### Builder Integration
 
-- [ ] Refactor [frontend/components/strategy-builder/strategy-builder-form.tsx](./frontend/components/strategy-builder/strategy-builder-form.tsx) so it remains focused on built-in strategies and backtest launching.
-- [ ] Add a separate custom strategy builder container/component for the new dedicated page.
+- [x] Refactor [frontend/components/strategy-builder/strategy-builder-form.tsx](./frontend/components/strategy-builder/strategy-builder-form.tsx) so it remains focused on built-in strategies and backtest launching.
+- [x] Add a separate custom strategy builder container/component for the new dedicated page.
 - [ ] Decide whether [frontend/components/strategy-builder/strategy-params-form.tsx](./frontend/components/strategy-builder/strategy-params-form.tsx) remains built-in-only.
 - [ ] Add inline validation and summary errors for custom rule definitions.
 
 ### `+ New Backtest` Page UX
 
-- [ ] Redesign the `+ New Backtest` page into a launcher with two sections.
-- [ ] Section 1: pre-defined strategies.
-- [ ] Section 2: saved custom strategies from the dedicated builder page.
-- [ ] Add fetch/load logic so the page can list saved custom strategies.
+- [x] Redesign the `+ New Backtest` page into a launcher with two sections.
+- [x] Section 1: pre-defined strategies.
+- [x] Section 2: saved custom strategies from the dedicated builder page.
+- [x] Add fetch/load logic so the page can list saved custom strategies.
 - [ ] Define how a user selects a custom strategy and starts a backtest from the launcher page.
 - [ ] Decide whether selecting a custom strategy should:
   - [ ] immediately run using saved settings
@@ -371,10 +373,10 @@ This document tracks the implementation plan for adding user-defined custom stra
 ### Save & CRUD
 
 - [ ] Extend [frontend/lib/actions/backtest.ts](./frontend/lib/actions/backtest.ts) to create strategy instances tied to custom definitions.
-- [ ] Extend [frontend/lib/actions/strategies.ts](./frontend/lib/actions/strategies.ts) to save, fetch, update, and duplicate custom definitions.
+- [x] Extend [frontend/lib/actions/strategies.ts](./frontend/lib/actions/strategies.ts) to save, fetch, update, and duplicate custom definitions.
 - [ ] Ensure strategy serialization remains stable.
-- [ ] Add dedicated save/update flows for custom strategy definitions independent of backtest execution.
-- [ ] Ensure the custom builder page `Save` button persists the definition without requiring a run.
+- [x] Add dedicated save/update flows for custom strategy definitions independent of backtest execution.
+- [x] Ensure the custom builder page `Save` button persists the definition without requiring a run.
 
 ### Workspace
 
@@ -446,20 +448,25 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ### Frontend Tests
 
-- [ ] Builder slice tests for custom drafts.
-- [ ] Indicator picker component tests.
-- [ ] Indicator parameter form tests.
+- [x] Builder slice tests for custom drafts.
+- [x] Custom definition action tests.
+- [x] Custom definition create/update validation tests.
+- [x] Custom builder workspace tests.
+- [x] Saved custom strategies launcher tests.
+- [x] Sidebar navigation tests for the dedicated custom builder page.
+- [x] Indicator picker component tests.
+- [x] Indicator parameter form tests.
 - [ ] Rule builder interaction tests.
-- [ ] Duplicate flow tests.
+- [x] Duplicate flow tests.
 - [ ] Workspace rendering tests for custom strategies.
 - [ ] Optimization form tests for custom strategy metadata.
 - [ ] Comparison compatibility tests.
 
 ### Manual Smoke Tests
 
-- [ ] Create a custom strategy from scratch.
-- [ ] Save it successfully.
-- [ ] Reopen it successfully.
+- [x] Create a custom strategy from scratch.
+- [x] Save it successfully.
+- [x] Reopen it successfully.
 - [ ] Duplicate it successfully.
 - [ ] Run a backtest successfully.
 - [ ] Compare it with built-in strategies.
@@ -470,17 +477,23 @@ This document tracks the implementation plan for adding user-defined custom stra
 
 ## Key Files To Update
 
-- [ ] [frontend/prisma/schema.prisma](./frontend/prisma/schema.prisma)
-- [ ] [frontend/lib/types.ts](./frontend/lib/types.ts)
-- [ ] [frontend/lib/validations.ts](./frontend/lib/validations.ts)
-- [ ] [frontend/store/slices/strategyBuilderSlice.ts](./frontend/store/slices/strategyBuilderSlice.ts)
-- [ ] [frontend/app/dashboard/new/page.tsx](./frontend/app/dashboard/new/page.tsx)
-- [ ] [frontend/app/dashboard/build-custom-stratergy/page.tsx](./frontend/app/dashboard/build-custom-stratergy/page.tsx)
+- [x] [frontend/prisma/schema.prisma](./frontend/prisma/schema.prisma)
+- [x] [frontend/prisma/migrations/20260309150000_add_custom_strategy_definitions/migration.sql](./frontend/prisma/migrations/20260309150000_add_custom_strategy_definitions/migration.sql)
+- [x] [frontend/lib/types.ts](./frontend/lib/types.ts)
+- [x] [frontend/lib/custom-indicator-catalog.ts](./frontend/lib/custom-indicator-catalog.ts)
+- [x] [frontend/lib/validations.ts](./frontend/lib/validations.ts)
+- [x] [frontend/lib/actions/custom-strategy-definitions.ts](./frontend/lib/actions/custom-strategy-definitions.ts)
+- [x] [frontend/store/slices/strategyBuilderSlice.ts](./frontend/store/slices/strategyBuilderSlice.ts)
+- [x] [frontend/app/dashboard/new/page.tsx](./frontend/app/dashboard/new/page.tsx)
+- [x] [frontend/app/dashboard/build-custom-stratergy/page.tsx](./frontend/app/dashboard/build-custom-stratergy/page.tsx)
 - [ ] [frontend/components/strategy-builder/strategy-builder-form.tsx](./frontend/components/strategy-builder/strategy-builder-form.tsx)
 - [ ] [frontend/components/strategy-builder/strategy-type-selector.tsx](./frontend/components/strategy-builder/strategy-type-selector.tsx)
 - [ ] [frontend/components/strategy-builder/strategy-params-form.tsx](./frontend/components/strategy-builder/strategy-params-form.tsx)
 - [ ] [frontend/components/strategy-builder/onboarding-modal.tsx](./frontend/components/strategy-builder/onboarding-modal.tsx)
-- [ ] [frontend/components/layout/app-sidebar.tsx](./frontend/components/layout/app-sidebar.tsx)
+- [x] [frontend/components/custom-strategy/custom-strategy-builder-workspace.tsx](./frontend/components/custom-strategy/custom-strategy-builder-workspace.tsx)
+- [x] [frontend/components/custom-strategy/custom-strategy-indicator-library.tsx](./frontend/components/custom-strategy/custom-strategy-indicator-library.tsx)
+- [x] [frontend/components/custom-strategy/saved-custom-strategies-section.tsx](./frontend/components/custom-strategy/saved-custom-strategies-section.tsx)
+- [x] [frontend/components/layout/app-sidebar.tsx](./frontend/components/layout/app-sidebar.tsx)
 - [ ] [frontend/components/layout/mobile-header.tsx](./frontend/components/layout/mobile-header.tsx)
 - [ ] [frontend/components/optimization/optimize-config-form.tsx](./frontend/components/optimization/optimize-config-form.tsx)
 - [ ] [frontend/components/workspace/strategy-card.tsx](./frontend/components/workspace/strategy-card.tsx)
