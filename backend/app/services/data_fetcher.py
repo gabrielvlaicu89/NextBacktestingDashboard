@@ -3,12 +3,45 @@ from __future__ import annotations
 
 import functools
 import os
+import threading
+import time
 from datetime import date
 
 import httpx
 import pandas as pd
 import yfinance as yf
 from loguru import logger
+
+
+# ── Alpha Vantage rate limiter (25 req/day ≈ 1 every 3.5 min) ─────────────────
+
+class _AlphaVantageRateLimiter:
+    """Thread-safe rate limiter for Alpha Vantage free tier (25 req/day)."""
+
+    def __init__(self, max_per_day: int = 25):
+        self._lock = threading.Lock()
+        self._timestamps: list[float] = []
+        self._window = 86_400  # 24 hours in seconds
+        self._max = max_per_day
+
+    def acquire(self, timeout: float = 60) -> bool:
+        """Block until a request slot is available or timeout expires.
+        Returns True if acquired, False on timeout."""
+        deadline = time.monotonic() + timeout
+        while True:
+            with self._lock:
+                now = time.monotonic()
+                # Prune expired timestamps
+                self._timestamps = [t for t in self._timestamps if now - t < self._window]
+                if len(self._timestamps) < self._max:
+                    self._timestamps.append(now)
+                    return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(1)
+
+
+_av_limiter = _AlphaVantageRateLimiter()
 
 
 # Simple in-memory cache keyed by (ticker, date_from, date_to)
@@ -29,12 +62,17 @@ def fetch_ohlcv(ticker: str, date_from: date, date_to: date) -> pd.DataFrame:
     )
 
     if df.empty:
-        raise ValueError(f"No data returned for ticker '{ticker}' in range {date_from} – {date_to}. "
-                         "Check that the ticker is valid and the date range is correct.")
+        raise ValueError(
+            f"No data returned for ticker '{ticker}' in range {date_from} – {date_to}. "
+            "The ticker may be invalid, delisted, or the date range may predate its listing."
+        )
 
     if len(df) < 10:
-        raise ValueError(f"Insufficient data for '{ticker}': only {len(df)} trading days found. "
-                         "Try a wider date range.")
+        raise ValueError(
+            f"Insufficient data for '{ticker}': only {len(df)} trading days found "
+            f"in range {date_from} – {date_to}. "
+            "Try a wider date range (weekends and holidays are excluded automatically)."
+        )
 
     # Flatten MultiIndex columns if present (yfinance ≥ 0.2.x can return MultiIndex)
     if isinstance(df.columns, pd.MultiIndex):
@@ -65,10 +103,19 @@ def fetch_earnings(ticker: str, api_key: str | None = None) -> list[dict]:
     }
 
     try:
+        if not _av_limiter.acquire(timeout=60):
+            logger.warning(f"Alpha Vantage rate limit reached for '{ticker}' — skipping")
+            return []
+
         with httpx.Client(timeout=10) as client:
             resp = client.get(url, params=params)
             resp.raise_for_status()
             data = resp.json()
+
+        # Alpha Vantage returns a "Note" key when rate-limited
+        if "Note" in data:
+            logger.warning(f"Alpha Vantage rate limit note for '{ticker}': {data['Note']}")
+            return []
     except Exception as exc:
         logger.error(f"Alpha Vantage request failed for '{ticker}': {exc}")
         return []

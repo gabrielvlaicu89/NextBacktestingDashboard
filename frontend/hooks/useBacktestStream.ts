@@ -21,6 +21,7 @@ import {
   resetBacktest,
 } from "@/store/slices/backtestSlice";
 import { createBacktestRun } from "@/lib/actions/backtest";
+import { toast } from "sonner";
 import type { SSEEvent } from "@/lib/types";
 
 interface BacktestConfig {
@@ -78,6 +79,7 @@ export function useBacktestStream() {
                 dispatch(setResults(data.results));
                 dispatch(setStatus("completed"));
                 dispatch(setProgress(100));
+                toast.success("Backtest completed");
                 es.close();
                 eventSourceRef.current = null;
                 break;
@@ -85,6 +87,7 @@ export function useBacktestStream() {
               case "error":
                 dispatch(setError(data.message));
                 dispatch(setStatus("failed"));
+                toast.error(data.message);
                 es.close();
                 eventSourceRef.current = null;
                 break;

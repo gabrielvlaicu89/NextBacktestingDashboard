@@ -5,7 +5,7 @@ from datetime import date
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ── Enums ─────────────────────────────────────────────────────────────────────
@@ -73,6 +73,12 @@ class BacktestRequest(BaseModel):
     risk_settings: RiskSettings = Field(default_factory=RiskSettings)
     parameters: dict[str, Any] = Field(default_factory=dict)
 
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "BacktestRequest":
+        if self.date_to <= self.date_from:
+            raise ValueError("date_to must be after date_from")
+        return self
+
 
 # ── Trade ─────────────────────────────────────────────────────────────────────
 
@@ -127,6 +133,12 @@ class OptimizeRequest(BaseModel):
     fixed_parameters: dict[str, Any] = Field(default_factory=dict)
     param_ranges: dict[str, ParamRange]
     optimize_for: str = "sharpe_ratio"
+
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "OptimizeRequest":
+        if self.date_to <= self.date_from:
+            raise ValueError("date_to must be after date_from")
+        return self
 
 
 # ── SSE Progress ─────────────────────────────────────────────────────────────

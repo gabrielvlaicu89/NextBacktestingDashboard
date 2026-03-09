@@ -235,4 +235,123 @@ describe("useOptimizeStream", () => {
     // Immediately after calling startOptimize, results should be reset to null
     expect(result.current.results).toBeNull();
   });
+
+  // Progressive result accumulation
+  it("accumulates partial results from progress events with result field", async () => {
+    const progress1 = JSON.stringify({
+      type: "progress",
+      percent: 50,
+      message: "[1/2] zscore_window=10",
+      result: { params: { zscore_window: 10 }, metric: 0.8 },
+    });
+    const progress2 = JSON.stringify({
+      type: "progress",
+      percent: 100,
+      message: "[2/2] zscore_window=20",
+      result: { params: { zscore_window: 20 }, metric: 1.5 },
+    });
+    const completeEvent = JSON.stringify({
+      type: "complete",
+      results: [
+        { params: { zscore_window: 10 }, metric: 0.8 },
+        { params: { zscore_window: 20 }, metric: 1.5 },
+      ],
+    });
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: makeSseStream([progress1, progress2, completeEvent]),
+    });
+
+    const { result } = renderHook(() => useOptimizeStream());
+    act(() => { void result.current.startOptimize(makeConfig()); });
+
+    await waitFor(() => expect(result.current.status).toBe("completed"));
+    expect(result.current.results).toHaveLength(2);
+    expect(result.current.results![0].metric).toBe(0.8);
+    expect(result.current.results![1].metric).toBe(1.5);
+  });
+
+  it("shows partial results while still running", async () => {
+    // Use a chunked stream to control timing
+    const encoder = new TextEncoder();
+    const progress1 = `data: ${JSON.stringify({
+      type: "progress",
+      percent: 50,
+      message: "[1/2]",
+      result: { params: { zscore_window: 10 }, metric: 0.8 },
+    })}\n\n`;
+    const complete = `data: ${JSON.stringify({
+      type: "complete",
+      results: [{ params: { zscore_window: 10 }, metric: 0.8 }],
+    })}\n\n`;
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(progress1));
+        controller.enqueue(encoder.encode(complete));
+        controller.close();
+      },
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, body: stream });
+
+    const { result } = renderHook(() => useOptimizeStream());
+    act(() => { void result.current.startOptimize(makeConfig()); });
+
+    await waitFor(() => expect(result.current.results).not.toBeNull());
+    // By the time we can assert, at least 1 result should be accumulated
+    expect(result.current.results!.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("ignores progress events without result field for accumulation", async () => {
+    const progressNoResult = JSON.stringify({
+      type: "progress",
+      percent: 0,
+      message: "Starting…",
+    });
+    const completeEvent = JSON.stringify({
+      type: "complete",
+      results: [{ params: { zscore_window: 10 }, metric: 0.8 }],
+    });
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: makeSseStream([progressNoResult, completeEvent]),
+    });
+
+    const { result } = renderHook(() => useOptimizeStream());
+    act(() => { void result.current.startOptimize(makeConfig()); });
+
+    await waitFor(() => expect(result.current.status).toBe("completed"));
+    // Final results from complete event
+    expect(result.current.results).toHaveLength(1);
+  });
+
+  it("complete event overrides accumulated partial results", async () => {
+    const progress1 = JSON.stringify({
+      type: "progress",
+      percent: 50,
+      message: "[1/2]",
+      result: { params: { zscore_window: 10 }, metric: 0.8 },
+    });
+    // Complete event is the authoritative source — may differ from accumulated
+    const completeEvent = JSON.stringify({
+      type: "complete",
+      results: [
+        { params: { zscore_window: 10 }, metric: 0.85 },
+        { params: { zscore_window: 20 }, metric: 1.5 },
+      ],
+    });
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: makeSseStream([progress1, completeEvent]),
+    });
+
+    const { result } = renderHook(() => useOptimizeStream());
+    act(() => { void result.current.startOptimize(makeConfig()); });
+
+    await waitFor(() => expect(result.current.status).toBe("completed"));
+    // Final results should be from the complete event, not accumulated
+    expect(result.current.results).toHaveLength(2);
+    expect(result.current.results![0].metric).toBe(0.85);
+  });
 });

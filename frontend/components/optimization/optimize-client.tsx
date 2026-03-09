@@ -120,8 +120,8 @@ export function OptimizeClient({ strategy, catalog }: OptimizeClientProps) {
         </Alert>
       )}
 
-      {/* Results */}
-      {status === "completed" && results && results.length > 0 && (
+      {/* Results — show progressively during running AND after completion */}
+      {(status === "completed" || status === "running") && results && results.length > 0 && (
         <OptimizeResults
           results={results}
           optimizeFor={optimizeForLabel}

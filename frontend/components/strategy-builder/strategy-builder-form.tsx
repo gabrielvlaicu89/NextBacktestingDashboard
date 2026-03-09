@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
 export function StrategyBuilderForm({
   showOnboarding = false,
@@ -42,13 +43,13 @@ export function StrategyBuilderForm({
   const builder = useAppSelector((s: import("@/store/store").RootState) => s.strategyBuilder);
   const backtestStatus = useAppSelector((s: import("@/store/store").RootState) => s.backtest.status);
   const { startBacktest } = useBacktestStream();
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [onboardingOpen, setOnboardingOpen] = useState(showOnboarding);
 
   const isRunning = backtestStatus === "running";
 
   const handleRun = useCallback(async () => {
-    setValidationError(null);
+    setFieldErrors({});
 
     // Validate form state
     const payload = {
@@ -63,10 +64,13 @@ export function StrategyBuilderForm({
 
     const result = backtestRequestSchema.safeParse(payload);
     if (!result.success) {
-      const firstError = result.error.errors[0];
-      setValidationError(
-        `${firstError.path.join(".")}: ${firstError.message}`
-      );
+      const errors: Record<string, string> = {};
+      for (const issue of result.error.errors) {
+        const key = issue.path.join(".");
+        if (!errors[key]) errors[key] = issue.message;
+      }
+      setFieldErrors(errors);
+      toast.error("Please fix the validation errors below");
       return;
     }
 
@@ -84,7 +88,7 @@ export function StrategyBuilderForm({
 
   const handleReset = useCallback(() => {
     dispatch(resetBuilder());
-    setValidationError(null);
+    setFieldErrors({});
   }, [dispatch]);
 
   return (
@@ -135,6 +139,9 @@ export function StrategyBuilderForm({
           onChange={(t) => dispatch(setTicker(t))}
           disabled={isRunning}
         />
+        {fieldErrors["ticker"] && (
+          <p className="mt-1 text-sm text-destructive" data-testid="field-error-ticker">{fieldErrors["ticker"]}</p>
+        )}
       </section>
 
       {/* Date Range */}
@@ -146,6 +153,12 @@ export function StrategyBuilderForm({
           onChange={(range) => dispatch(setDateRange(range))}
           disabled={isRunning}
         />
+        {fieldErrors["date_from"] && (
+          <p className="mt-1 text-sm text-destructive" data-testid="field-error-date-from">{fieldErrors["date_from"]}</p>
+        )}
+        {fieldErrors["date_to"] && (
+          <p className="mt-1 text-sm text-destructive" data-testid="field-error-date-to">{fieldErrors["date_to"]}</p>
+        )}
       </section>
 
       {/* Strategy Type */}
@@ -178,6 +191,12 @@ export function StrategyBuilderForm({
           onChange={(partial) => dispatch(setRiskSettings(partial))}
           disabled={isRunning}
         />
+        {Object.entries(fieldErrors)
+          .filter(([key]) => key.startsWith("risk_settings."))
+          .map(([key, msg]) => (
+            <p key={key} className="text-sm text-destructive" data-testid={`field-error-${key}`}>{msg}</p>
+          ))
+        }
       </section>
 
       {/* Benchmark */}
@@ -187,16 +206,20 @@ export function StrategyBuilderForm({
           onChange={(b) => dispatch(setBenchmark(b))}
           disabled={isRunning}
         />
+        {fieldErrors["benchmark"] && (
+          <p className="mt-1 text-sm text-destructive" data-testid="field-error-benchmark">{fieldErrors["benchmark"]}</p>
+        )}
       </section>
 
-      {/* Validation Error */}
-      {validationError && (
+      {/* Validation Error Summary */}
+      {Object.keys(fieldErrors).length > 0 && (
         <div
           className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
           role="alert"
           data-testid="validation-error"
         >
-          {validationError}
+          Please fix {Object.keys(fieldErrors).length} validation{" "}
+          {Object.keys(fieldErrors).length === 1 ? "error" : "errors"} above.
         </div>
       )}
 

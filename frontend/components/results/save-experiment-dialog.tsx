@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { updateStrategy } from "@/lib/actions/strategies";
+import { toast } from "sonner";
 
 interface SaveExperimentDialogProps {
   strategyId: string;
@@ -76,11 +77,12 @@ export function SaveExperimentDialog({
     try {
       await updateStrategy(strategyId, { name: name.trim(), tags });
       onSaved?.(name.trim(), tags);
+      toast.success("Experiment saved");
       setOpen(false);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to save experiment"
-      );
+      const msg = err instanceof Error ? err.message : "Failed to save experiment";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

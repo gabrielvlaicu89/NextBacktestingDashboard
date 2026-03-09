@@ -43,9 +43,16 @@ async def _stream_backtest(request: BacktestRequest) -> AsyncGenerator[str, None
             if not ticker_b:
                 yield _sse("error", message="Pairs trading requires a 'ticker_b' parameter.")
                 return
+            if ticker_b == request.ticker:
+                yield _sse("error", message="Ticker B must be different from the primary ticker.")
+                return
             yield _sse("progress", percent=35, message=f"Fetching {ticker_b} data…")
             await asyncio.sleep(0)
-            df_b = await asyncio.to_thread(fetch_ohlcv, ticker_b, request.date_from, request.date_to)
+            try:
+                df_b = await asyncio.to_thread(fetch_ohlcv, ticker_b, request.date_from, request.date_to)
+            except ValueError as exc:
+                yield _sse("error", message=f"Ticker B ({ticker_b}): {exc}")
+                return
             if isinstance(strategy, PairsTradingStrategy):
                 strategy.set_df_b(df_b)
 

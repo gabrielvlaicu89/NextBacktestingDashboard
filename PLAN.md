@@ -258,37 +258,37 @@
 
 ## Phase 10 — Real-Time Streaming (SSE)
 
-- [ ] **34. Implement SSE for backtest progress**
-  - [ ] FastAPI: `text/event-stream` endpoint yielding progress JSON events
-  - [ ] Event types: `progress` (percent, message), `complete` (results), `error` (message)
-  - [ ] `useBacktestStream` hook: `EventSource` API → parse events → dispatch to Redux
+- [x] **34. Implement SSE for backtest progress**
+  - [x] FastAPI: `text/event-stream` endpoint yielding progress JSON events
+  - [x] Event types: `progress` (percent, message), `complete` (results), `error` (message)
+  - [x] `useBacktestStream` hook: `EventSource` API → parse events → dispatch to Redux
 
-- [ ] **35. Implement SSE for optimization progress**
-  - [ ] Same pattern for grid search: stream current params + % of combinations tested
-  - [ ] Heatmap renders progressively as results stream in
+- [x] **35. Implement SSE for optimization progress**
+  - [x] Same pattern for grid search: stream current params + % of combinations tested
+  - [x] Heatmap renders progressively as results stream in
 
 ---
 
 ## Phase 11 — Polish & Edge Cases
 
-- [ ] **36. Error handling & loading states**
-  - [ ] Global error boundary (`app/error.tsx`)
-  - [ ] Loading skeletons for all data-fetching pages (`loading.tsx`)
-  - [ ] Toast notifications (shadcn `Sonner`) for success/error feedback
-  - [ ] Inline form validation errors via zod + react-hook-form
+- [x] **36. Error handling & loading states**
+  - [x] Global error boundary (`app/error.tsx`)
+  - [x] Loading skeletons for all data-fetching pages (`loading.tsx`)
+  - [x] Toast notifications (shadcn `Sonner`) for success/error feedback
+  - [x] Inline form validation errors via zod + react-hook-form
 
-- [ ] **37. Responsive design**
-  - [ ] Sidebar collapses to hamburger on mobile
-  - [ ] Charts resize responsively
-  - [ ] Strategy Builder stacks vertically on small screens
-  - [ ] Data tables scroll horizontally on mobile
+- [x] **37. Responsive design**
+  - [x] Sidebar collapses to hamburger on mobile
+  - [x] Charts resize responsively
+  - [x] Strategy Builder stacks vertically on small screens
+  - [x] Data tables scroll horizontally on mobile
 
-- [ ] **38. Backtesting edge cases**
-  - [ ] Handle tickers with insufficient data for the selected date range
-  - [ ] Handle weekends/holidays in date ranges
-  - [ ] Handle delisted tickers gracefully
-  - [ ] Pairs trading: validate overlapping date ranges for both tickers
-  - [ ] Alpha Vantage rate limiting (25 req/day) — queue + retry logic
+- [x] **38. Backtesting edge cases**
+  - [x] Handle tickers with insufficient data for the selected date range
+  - [x] Handle weekends/holidays in date ranges
+  - [x] Handle delisted tickers gracefully
+  - [x] Pairs trading: validate overlapping date ranges for both tickers
+  - [x] Alpha Vantage rate limiting (25 req/day) — queue + retry logic
 
 ---
 

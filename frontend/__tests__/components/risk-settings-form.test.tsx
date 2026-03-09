@@ -119,4 +119,16 @@ describe("RiskSettingsForm", () => {
     );
     expect(screen.getByTestId("risk-stop-loss")).toHaveValue(5);
   });
+
+  it("uses responsive grid layout", () => {
+    const { container } = render(
+      <RiskSettingsForm value={DEFAULT_RISK_SETTINGS} onChange={onChange} />
+    );
+    // Starting capital + position sizing mode in a 2-col grid on sm
+    const twoColGrids = container.querySelectorAll(".sm\\:grid-cols-2");
+    expect(twoColGrids.length).toBeGreaterThanOrEqual(1);
+    // Position size + stop loss + take profit in a 3-col grid on sm
+    const threeColGrids = container.querySelectorAll(".sm\\:grid-cols-3");
+    expect(threeColGrids.length).toBeGreaterThanOrEqual(1);
+  });
 });

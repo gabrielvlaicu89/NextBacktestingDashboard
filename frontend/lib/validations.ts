@@ -36,7 +36,10 @@ export const backtestRequestSchema = z.object({
   benchmark: z.string().min(1).default("SPY"),
   risk_settings: riskSettingsSchema.default({}),
   parameters: z.record(z.unknown()).default({}),
-});
+}).refine(
+  (data) => data.date_to > data.date_from,
+  { message: "End date must be after start date", path: ["date_to"] },
+);
 
 export type BacktestRequestInput = z.infer<typeof backtestRequestSchema>;
 

@@ -90,6 +90,41 @@ describe("backtestRequestSchema", () => {
       expect(result.success).toBe(true);
     }
   });
+
+  it("rejects date_to before date_from", () => {
+    const result = backtestRequestSchema.safeParse({
+      ...validPayload,
+      date_from: "2024-12-31",
+      date_to: "2024-01-01",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.errors.map((e) => e.message);
+      expect(messages).toContain("End date must be after start date");
+    }
+  });
+
+  it("rejects date_to equal to date_from", () => {
+    const result = backtestRequestSchema.safeParse({
+      ...validPayload,
+      date_from: "2024-06-15",
+      date_to: "2024-06-15",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("reports date_to path for date range error", () => {
+    const result = backtestRequestSchema.safeParse({
+      ...validPayload,
+      date_from: "2024-12-31",
+      date_to: "2024-01-01",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const dateErr = result.error.errors.find((e) => e.message.includes("End date"));
+      expect(dateErr?.path).toContain("date_to");
+    }
+  });
 });
 
 describe("createStrategySchema", () => {

@@ -75,6 +75,8 @@ export interface SSEProgressEvent {
   type: "progress";
   percent: number;
   message: string;
+  /** Individual result entry — sent during optimization for progressive rendering */
+  result?: OptimizeResultEntry;
 }
 
 export interface SSECompleteEvent {

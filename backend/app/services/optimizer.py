@@ -78,20 +78,21 @@ async def run_grid_search(request: OptimizeRequest) -> AsyncGenerator[str, None]
         except Exception:
             metric_value = None
 
-        results.append({
+        entry = {
             "params": {k: round(float(v), 6) for k, v in zip(param_keys, combo)},
             "metric": round(float(metric_value), 6) if metric_value is not None else None,
-        })
+        }
+        results.append(entry)
 
         pct = round((idx + 1) / total * 100, 1)
         param_str = ", ".join(f"{k}={round(v, 3)}" for k, v in zip(param_keys, combo))
-        yield _sse("progress", percent=pct, message=f"[{idx+1}/{total}] {param_str}")
+        yield _sse("progress", percent=pct, message=f"[{idx+1}/{total}] {param_str}", result=entry)
         await asyncio.sleep(0)
 
     yield _sse("complete", results=results)
 
 
-def _sse(event_type: str, *, percent: float | None = None, message: str | None = None, results=None) -> str:
+def _sse(event_type: str, *, percent: float | None = None, message: str | None = None, results=None, result=None) -> str:
     data: dict = {"type": event_type}
     if percent is not None:
         data["percent"] = percent
@@ -99,4 +100,6 @@ def _sse(event_type: str, *, percent: float | None = None, message: str | None =
         data["message"] = message
     if results is not None:
         data["results"] = results
+    if result is not None:
+        data["result"] = result
     return f"data: {json.dumps(data)}\n\n"

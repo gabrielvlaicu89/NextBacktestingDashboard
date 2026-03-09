@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { OptimizeConfig, OptimizeResultEntry } from "@/lib/types";
 
 export type OptimizeStatus = "idle" | "running" | "completed" | "error";
@@ -21,6 +22,7 @@ export interface UseOptimizeStreamReturn {
   status: OptimizeStatus;
   progress: number;
   message: string;
+  /** Partial results accumulate during streaming; final results on complete */
   results: OptimizeResultEntry[] | null;
   error: string | null;
   startOptimize: (config: OptimizeConfig) => Promise<void>;
@@ -68,6 +70,7 @@ export function useOptimizeStream(): UseOptimizeStreamReturn {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      const accumulated: OptimizeResultEntry[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -87,13 +90,21 @@ export function useOptimizeStream(): UseOptimizeStreamReturn {
             if (data.type === "progress") {
               setProgress(data.percent ?? 0);
               setMessage(data.message ?? "");
+              // Accumulate individual result for progressive rendering
+              if (data.result) {
+                accumulated.push(data.result as OptimizeResultEntry);
+                setResults([...accumulated]);
+              }
             } else if (data.type === "complete") {
+              // Final authoritative results from the backend
               setResults(data.results as OptimizeResultEntry[]);
               setStatus("completed");
               setProgress(100);
+              toast.success("Optimization completed");
             } else if (data.type === "error") {
               setError(data.message ?? "Optimization failed");
               setStatus("error");
+              toast.error(data.message ?? "Optimization failed");
             }
           } catch {
             // Ignore non-JSON blocks
