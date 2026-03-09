@@ -1,4 +1,5 @@
 """Data fetching service — wraps yfinance and Alpha Vantage."""
+
 from __future__ import annotations
 
 import functools
@@ -12,8 +13,8 @@ import pandas as pd
 import yfinance as yf
 from loguru import logger
 
-
 # ── Alpha Vantage rate limiter (25 req/day ≈ 1 every 3.5 min) ─────────────────
+
 
 class _AlphaVantageRateLimiter:
     """Thread-safe rate limiter for Alpha Vantage free tier (25 req/day)."""
@@ -32,7 +33,9 @@ class _AlphaVantageRateLimiter:
             with self._lock:
                 now = time.monotonic()
                 # Prune expired timestamps
-                self._timestamps = [t for t in self._timestamps if now - t < self._window]
+                self._timestamps = [
+                    t for t in self._timestamps if now - t < self._window
+                ]
                 if len(self._timestamps) < self._max:
                     self._timestamps.append(now)
                     return True
@@ -63,15 +66,18 @@ def fetch_ohlcv(ticker: str, date_from: date, date_to: date) -> pd.DataFrame:
 
     if df.empty:
         raise ValueError(
-            f"No data returned for ticker '{ticker}' in range {date_from} – {date_to}. "
-            "The ticker may be invalid, delisted, or the date range may predate its listing."
+            f"No data returned for ticker '{ticker}' in range "
+            f"{date_from} – {date_to}. "
+            "The ticker may be invalid, delisted, "
+            "or the date range may predate its listing."
         )
 
     if len(df) < 10:
         raise ValueError(
             f"Insufficient data for '{ticker}': only {len(df)} trading days found "
             f"in range {date_from} – {date_to}. "
-            "Try a wider date range (weekends and holidays are excluded automatically)."
+            "Try a wider date range "
+            "(weekends and holidays are excluded automatically)."
         )
 
     # Flatten MultiIndex columns if present (yfinance ≥ 0.2.x can return MultiIndex)
@@ -104,7 +110,9 @@ def fetch_earnings(ticker: str, api_key: str | None = None) -> list[dict]:
 
     try:
         if not _av_limiter.acquire(timeout=60):
-            logger.warning(f"Alpha Vantage rate limit reached for '{ticker}' — skipping")
+            logger.warning(
+                f"Alpha Vantage rate limit reached for '{ticker}' — skipping"
+            )
             return []
 
         with httpx.Client(timeout=10) as client:
@@ -114,7 +122,9 @@ def fetch_earnings(ticker: str, api_key: str | None = None) -> list[dict]:
 
         # Alpha Vantage returns a "Note" key when rate-limited
         if "Note" in data:
-            logger.warning(f"Alpha Vantage rate limit note for '{ticker}': {data['Note']}")
+            logger.warning(
+                f"Alpha Vantage rate limit note for '{ticker}': {data['Note']}"
+            )
             return []
     except Exception as exc:
         logger.error(f"Alpha Vantage request failed for '{ticker}': {exc}")
@@ -133,12 +143,14 @@ def fetch_earnings(ticker: str, api_key: str | None = None) -> list[dict]:
             reported = float(item.get("reportedEPS", 0) or 0)
             estimated = float(item.get("estimatedEPS", 0) or 0)
             surprise_pct = float(item.get("surprisePercentage", 0) or 0)
-            results.append({
-                "date": item["reportedDate"],
-                "reported_eps": reported,
-                "estimated_eps": estimated,
-                "surprise_pct": surprise_pct,
-            })
+            results.append(
+                {
+                    "date": item["reportedDate"],
+                    "reported_eps": reported,
+                    "estimated_eps": estimated,
+                    "surprise_pct": surprise_pct,
+                }
+            )
         except (ValueError, KeyError, TypeError):
             continue
 

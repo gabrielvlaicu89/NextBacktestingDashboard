@@ -8,6 +8,30 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { StrategyType, RiskSettings } from "@/lib/types";
 import { DEFAULT_RISK_SETTINGS } from "@/lib/types";
 
+export const DEFAULT_STRATEGY_START_DATE = "2020-01-01";
+
+function getTodayDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function createInitialState(): StrategyBuilderState {
+  return {
+    ticker: "",
+    dateFrom: DEFAULT_STRATEGY_START_DATE,
+    dateTo: getTodayDateString(),
+    strategyType: null,
+    parameters: {},
+    riskSettings: DEFAULT_RISK_SETTINGS,
+    benchmark: "SPY",
+    name: "",
+    tags: [],
+  };
+}
+
 export interface StrategyBuilderState {
   ticker: string;
   dateFrom: string;
@@ -20,17 +44,7 @@ export interface StrategyBuilderState {
   tags: string[];
 }
 
-const initialState: StrategyBuilderState = {
-  ticker: "",
-  dateFrom: "",
-  dateTo: "",
-  strategyType: null,
-  parameters: {},
-  riskSettings: DEFAULT_RISK_SETTINGS,
-  benchmark: "SPY",
-  name: "",
-  tags: [],
-};
+const initialState: StrategyBuilderState = createInitialState();
 
 const strategyBuilderSlice = createSlice({
   name: "strategyBuilder",
@@ -83,7 +97,7 @@ const strategyBuilderSlice = createSlice({
       return { ...action.payload };
     },
     resetBuilder() {
-      return { ...initialState };
+      return createInitialState();
     },
   },
 });

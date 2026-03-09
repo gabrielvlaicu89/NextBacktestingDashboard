@@ -1,4 +1,5 @@
 """Unit tests for the MA Crossover strategy."""
+
 from app.engine.ma_crossover import MACrossoverStrategy
 from app.models.schemas import RiskSettings
 from tests.conftest import make_df
@@ -6,13 +7,15 @@ from tests.conftest import make_df
 
 def _downup_prices() -> list[float]:
     """
-    Prices that decline then recover — guarantees a golden cross followed by a death cross.
+    Prices that decline then recover.
+
+    This guarantees a golden cross followed by a death cross.
     Decline: fast MA drops below slow MA
     Recovery: fast MA crosses back above slow MA → golden cross (buy)
     Second decline: fast MA drops below slow MA again → death cross (sell)
     """
-    down = list(range(100, 60, -1))   # 100 → 61 (40 bars)
-    up = list(range(61, 120))         # 61 → 119 (58 bars)
+    down = list(range(100, 60, -1))  # 100 → 61 (40 bars)
+    up = list(range(61, 120))  # 61 → 119 (58 bars)
     down2 = list(range(119, 70, -1))  # 119 → 71 (49 bars)
     return down + up + down2
 
@@ -28,7 +31,9 @@ def test_golden_cross_buy():
     result = strategy.generate_signals(df.copy())
     buy_signals = result[result["signal"] == 1]
 
-    assert len(buy_signals) >= 1, "Expected a golden cross buy signal in the uptrend phase"
+    assert (
+        len(buy_signals) >= 1
+    ), "Expected a golden cross buy signal in the uptrend phase"
 
 
 def test_death_cross_sell():
@@ -42,7 +47,9 @@ def test_death_cross_sell():
     result = strategy.generate_signals(df.copy())
     sell_signals = result[result["signal"] == -1]
 
-    assert len(sell_signals) >= 1, "Expected a death cross sell signal in the downtrend phase"
+    assert (
+        len(sell_signals) >= 1
+    ), "Expected a death cross sell signal in the downtrend phase"
 
 
 def test_ema_variant():
@@ -76,4 +83,3 @@ def test_trade_execution():
     for t in trades:
         assert t.entry_price > 0
         assert t.holding_days >= 0
-

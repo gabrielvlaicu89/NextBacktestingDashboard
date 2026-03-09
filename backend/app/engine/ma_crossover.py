@@ -1,4 +1,5 @@
 """Moving Average Crossover strategy."""
+
 from __future__ import annotations
 
 import pandas as pd
@@ -31,7 +32,7 @@ class MACrossoverStrategy(Strategy):
         for i in range(slow + 1, len(df)):
             curr_above = fast_ma.iloc[i] > slow_ma.iloc[i]
             if curr_above and not prev_above:
-                df.iloc[i, df.columns.get_loc("signal")] = 1   # golden cross → buy
+                df.iloc[i, df.columns.get_loc("signal")] = 1  # golden cross → buy
             elif not curr_above and prev_above:
                 df.iloc[i, df.columns.get_loc("signal")] = -1  # death cross → sell
             prev_above = curr_above

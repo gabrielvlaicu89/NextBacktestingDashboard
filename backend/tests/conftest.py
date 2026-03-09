@@ -1,6 +1,6 @@
 """Shared test helpers for the backend test suite."""
+
 import pandas as pd
-import numpy as np
 
 
 def make_df(prices: list[float], start_date: str = "2024-01-02") -> pd.DataFrame:

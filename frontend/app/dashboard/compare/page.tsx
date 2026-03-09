@@ -10,7 +10,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getStrategiesByIds } from "@/lib/actions/strategies";
 import { ComparisonMetricsTable } from "@/components/comparison/comparison-metrics-table";
-import { ComparisonEquityChart, COMPARISON_COLORS } from "@/components/comparison/comparison-equity-chart";
+import { ComparisonEquityChart } from "@/components/comparison/comparison-equity-chart";
 import type { BacktestResponse, StrategyWithRuns } from "@/lib/types";
 
 interface ComparePageProps {
@@ -45,10 +45,9 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
   });
 
   // Build equity series (one per strategy, normalized in the chart component)
-  const equitySeries = items.map((item, idx) => ({
+  const equitySeries = items.map((item) => ({
     id: item.strategy.id,
     name: item.strategy.name,
-    color: COMPARISON_COLORS[idx % COMPARISON_COLORS.length],
     data: item.equityCurve.map((d) => ({ date: d.date, value: d.value })),
   }));
 

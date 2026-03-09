@@ -1,4 +1,5 @@
 """Mean Reversion strategy — Z-score based entries and exits."""
+
 from __future__ import annotations
 
 import pandas as pd

@@ -1,4 +1,5 @@
 """Unit tests for the Buy & Hold strategy."""
+
 from app.engine.buy_and_hold import BuyAndHoldStrategy
 from app.models.schemas import RiskSettings
 from tests.conftest import make_df

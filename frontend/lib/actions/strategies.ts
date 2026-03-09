@@ -8,7 +8,7 @@
  * or from Server Components directly.
  */
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "@/lib/auth";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { createStrategySchema, updateStrategySchema } from "@/lib/validations";
 import type { StrategyWithRuns, StrategyRecord } from "@/lib/types";
@@ -46,11 +46,10 @@ function serialiseStrategy(s: {
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 export async function getStrategies(): Promise<StrategyWithRuns[]> {
-  const session = await getServerSession();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const user = await requireCurrentUser();
 
   const strategies = await prisma.strategy.findMany({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
     include: { runs: { orderBy: { createdAt: "desc" } } },
     orderBy: { createdAt: "desc" },
   });
@@ -66,15 +65,14 @@ export async function getStrategies(): Promise<StrategyWithRuns[]> {
 }
 
 export async function getStrategy(id: string): Promise<StrategyWithRuns | null> {
-  const session = await getServerSession();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const user = await requireCurrentUser();
 
   const strategy = await prisma.strategy.findUnique({
     where: { id },
     include: { runs: { orderBy: { createdAt: "desc" } } },
   });
 
-  if (!strategy || strategy.userId !== session.user.id) return null;
+  if (!strategy || strategy.userId !== user.id) return null;
 
   return {
     ...serialiseStrategy(strategy),
@@ -87,8 +85,7 @@ export async function getStrategy(id: string): Promise<StrategyWithRuns | null> 
 }
 
 export async function createStrategy(input: unknown): Promise<StrategyRecord> {
-  const session = await getServerSession();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const user = await requireCurrentUser();
 
   const parsed = createStrategySchema.safeParse(input);
   if (!parsed.success) {
@@ -100,7 +97,7 @@ export async function createStrategy(input: unknown): Promise<StrategyRecord> {
 
   const strategy = await prisma.strategy.create({
     data: {
-      userId: session.user.id,
+      userId: user.id,
       name,
       type,
       ticker,
@@ -118,11 +115,10 @@ export async function createStrategy(input: unknown): Promise<StrategyRecord> {
 }
 
 export async function updateStrategy(id: string, input: unknown): Promise<StrategyRecord> {
-  const session = await getServerSession();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const user = await requireCurrentUser();
 
   const existing = await prisma.strategy.findUnique({ where: { id } });
-  if (!existing || existing.userId !== session.user.id) {
+  if (!existing || existing.userId !== user.id) {
     throw new Error("Strategy not found or forbidden");
   }
 
@@ -156,11 +152,10 @@ export async function updateStrategy(id: string, input: unknown): Promise<Strate
 }
 
 export async function deleteStrategy(id: string): Promise<void> {
-  const session = await getServerSession();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const user = await requireCurrentUser();
 
   const existing = await prisma.strategy.findUnique({ where: { id } });
-  if (!existing || existing.userId !== session.user.id) {
+  if (!existing || existing.userId !== user.id) {
     throw new Error("Strategy not found or forbidden");
   }
 
@@ -170,11 +165,10 @@ export async function deleteStrategy(id: string): Promise<void> {
 
 export async function getStrategiesByIds(ids: string[]): Promise<StrategyWithRuns[]> {
   if (ids.length === 0) return [];
-  const session = await getServerSession();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const user = await requireCurrentUser();
 
   const strategies = await prisma.strategy.findMany({
-    where: { id: { in: ids }, userId: session.user.id },
+    where: { id: { in: ids }, userId: user.id },
     include: { runs: { orderBy: { createdAt: "desc" } } },
   });
 

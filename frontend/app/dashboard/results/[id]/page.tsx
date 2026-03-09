@@ -1,13 +1,14 @@
 /**
  * app/dashboard/results/[id]/page.tsx — Server Component
  *
- * Fetches a specific strategy + its latest backtest run by ID,
- * then renders the ResultsDashboard client component with pre-loaded data.
+ * Fetches a specific backtest run by ID, verifies ownership, then renders the
+ * ResultsDashboard client component with that saved run's results.
  */
 import { notFound } from "next/navigation";
-import { getStrategy } from "@/lib/actions/strategies";
 import { ResultsDashboard } from "@/components/results/results-dashboard";
-import type { BacktestResponse } from "@/lib/types";
+import { requireCurrentUser } from "@/lib/current-user";
+import { prisma } from "@/lib/prisma";
+import type { BacktestResponse, RiskSettings, StrategyWithRuns } from "@/lib/types";
 
 interface ResultsPageProps {
   params: Promise<{ id: string }>;
@@ -15,27 +16,48 @@ interface ResultsPageProps {
 
 export default async function ResultsPage({ params }: ResultsPageProps) {
   const { id } = await params;
-
-  let strategy;
+  let user;
   try {
-    strategy = await getStrategy(id);
+    user = await requireCurrentUser();
   } catch {
     notFound();
   }
 
-  if (!strategy) {
+  const run = await prisma.backtestRun.findUnique({
+    where: { id },
+    include: {
+      strategy: {
+        include: {
+          runs: { orderBy: { createdAt: "desc" } },
+        },
+      },
+    },
+  });
+
+  if (!run || run.userId !== user.id) {
     notFound();
   }
 
-  // Find the latest completed run's results
-  const latestRun = strategy.runs.find((r) => r.status === "COMPLETED");
-  const savedResults: BacktestResponse | null = latestRun?.results ?? null;
+  const strategy: StrategyWithRuns = {
+    ...run.strategy,
+    dateFrom: run.strategy.dateFrom.toISOString(),
+    dateTo: run.strategy.dateTo.toISOString(),
+    createdAt: run.strategy.createdAt.toISOString(),
+    updatedAt: run.strategy.updatedAt.toISOString(),
+    parameters: run.strategy.parameters as Record<string, unknown>,
+    riskSettings: run.strategy.riskSettings as unknown as RiskSettings,
+    runs: run.strategy.runs.map((strategyRun) => ({
+      ...strategyRun,
+      createdAt: strategyRun.createdAt.toISOString(),
+      results: strategyRun.results as BacktestResponse | null,
+    })),
+  };
 
   return (
     <div className="p-6">
       <ResultsDashboard
         strategy={strategy}
-        savedResults={savedResults}
+        savedResults={run.results as BacktestResponse | null}
         strategyId={strategy.id}
       />
     </div>

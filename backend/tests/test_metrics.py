@@ -1,4 +1,5 @@
 """Unit tests for the metrics calculator."""
+
 import pandas as pd
 
 from app.engine.base import Trade
@@ -9,29 +10,36 @@ def _build_test_data():
     """Create known trades and equity curve for metric verification."""
     trades = [
         Trade(
-            entry_date="2024-01-02", exit_date="2024-01-10",
-            entry_price=100, exit_price=110,
-            pnl=1000, pnl_pct=10.0,
-            holding_days=8, exit_reason="signal",
+            entry_date="2024-01-02",
+            exit_date="2024-01-10",
+            entry_price=100,
+            exit_price=110,
+            pnl=1000,
+            pnl_pct=10.0,
+            holding_days=8,
+            exit_reason="signal",
         ),
         Trade(
-            entry_date="2024-01-15", exit_date="2024-01-22",
-            entry_price=105, exit_price=100,
-            pnl=-500, pnl_pct=-4.7619,
-            holding_days=7, exit_reason="signal",
+            entry_date="2024-01-15",
+            exit_date="2024-01-22",
+            entry_price=105,
+            exit_price=100,
+            pnl=-500,
+            pnl_pct=-4.7619,
+            holding_days=7,
+            exit_reason="signal",
         ),
     ]
 
     dates = pd.bdate_range("2024-01-02", periods=30)
 
     # Equity: rises, dips, recovers
-    values = [10000 + i * (1000 / 10) for i in range(10)]      # 10000 → 10900
-    values += [11000 - i * (500 / 10) for i in range(10)]      # 11000 → 10550
-    values += [10500 + i * (200 / 10) for i in range(10)]      # 10500 → 10680
+    values = [10000 + i * (1000 / 10) for i in range(10)]  # 10000 → 10900
+    values += [11000 - i * (500 / 10) for i in range(10)]  # 11000 → 10550
+    values += [10500 + i * (200 / 10) for i in range(10)]  # 10500 → 10680
 
     equity_curve = [
-        {"date": str(d.date()), "value": round(v, 2)}
-        for d, v in zip(dates, values)
+        {"date": str(d.date()), "value": round(v, 2)} for d, v in zip(dates, values)
     ]
 
     # Flat benchmark
@@ -65,6 +73,19 @@ def test_profit_factor():
 
     # Gross profit 1000, gross loss 500 → factor = 2.0
     assert result.metrics.profit_factor == 2.0
+
+
+def test_profit_factor_is_none_when_no_losses():
+    trades, equity_curve, benchmark_df = _build_test_data()
+    winning_trades = [trades[0]]
+    result = compute_metrics(
+        winning_trades,
+        equity_curve,
+        benchmark_df,
+        starting_capital=10000,
+    )
+
+    assert result.metrics.profit_factor is None
 
 
 def test_max_drawdown_negative():

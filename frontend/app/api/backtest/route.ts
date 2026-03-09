@@ -8,15 +8,23 @@
  * Designed to be consumed by EventSource on the client side.
  */
 import { getServerSession } from "@/lib/auth";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+
+function parseSseJson(raw: string) {
+  return JSON.parse(
+    raw.replace(/\b(?:NaN|Infinity|-Infinity)\b/g, "null"),
+  );
+}
 
 export async function GET(req: Request) {
   const session = await getServerSession();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const user = await requireCurrentUser();
 
   const { searchParams } = new URL(req.url);
   const runId = searchParams.get("runId");
@@ -35,7 +43,7 @@ export async function GET(req: Request) {
     return Response.json({ error: "Backtest run not found" }, { status: 404 });
   }
 
-  if (run.userId !== session.user.id) {
+  if (run.userId !== user.id) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -141,12 +149,16 @@ export async function GET(req: Request) {
           const trimmed = block.trim();
           if (!trimmed.startsWith("data: ")) continue;
 
-          // Forward to client
-          await writer.write(encoder.encode(trimmed + "\n\n"));
-
           // Parse and persist complete/error events
           try {
-            const data = JSON.parse(trimmed.slice(6)); // strip "data: "
+            const data = parseSseJson(trimmed.slice(6)); // strip "data: "
+
+            // Forward normalized JSON to the client so invalid numeric tokens
+            // from the backend do not break EventSource consumers.
+            await writer.write(
+              encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
+            );
+
             if (data.type === "complete" && data.results) {
               await prisma.backtestRun.update({
                 where: { id: runId },
@@ -167,7 +179,8 @@ export async function GET(req: Request) {
               });
             }
           } catch {
-            // JSON parse error — non-critical, event still forwarded
+            // JSON parse error — keep the raw event flowing to the client.
+            await writer.write(encoder.encode(trimmed + "\n\n"));
           }
         }
       }

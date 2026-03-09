@@ -3,6 +3,7 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  DEFAULT_STRATEGY_START_DATE,
   strategyBuilderReducer,
   setTicker,
   setDateRange,
@@ -19,10 +20,18 @@ import {
 import type { StrategyBuilderState } from "@/store/slices/strategyBuilderSlice";
 import { DEFAULT_RISK_SETTINGS } from "@/lib/types";
 
+function getTodayDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 const initial: StrategyBuilderState = {
   ticker: "",
-  dateFrom: "",
-  dateTo: "",
+  dateFrom: DEFAULT_STRATEGY_START_DATE,
+  dateTo: getTodayDateString(),
   strategyType: null,
   parameters: {},
   riskSettings: DEFAULT_RISK_SETTINGS,

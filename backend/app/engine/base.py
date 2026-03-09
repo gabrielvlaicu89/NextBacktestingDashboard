@@ -1,4 +1,5 @@
 """Abstract base class for all strategies, plus factory function."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -40,7 +41,9 @@ class Strategy(ABC):
         """
         ...
 
-    def execute_trades(self, df: pd.DataFrame, capital: float) -> tuple[list[Trade], list[dict]]:
+    def execute_trades(
+        self, df: pd.DataFrame, capital: float
+    ) -> tuple[list[Trade], list[dict]]:
         """
         Simulate portfolio execution from signals.
         Returns (trades, equity_curve).
@@ -51,16 +54,20 @@ class Strategy(ABC):
         equity_curve: list[dict] = []
 
         cash = capital
-        position = 0.0   # shares held
+        position = 0.0  # shares held
         entry_price = 0.0
         entry_date = ""
         portfolio_value = capital
 
         stop_loss = self.risk.stop_loss_pct / 100 if self.risk.stop_loss_pct else None
-        take_profit = self.risk.take_profit_pct / 100 if self.risk.take_profit_pct else None
+        take_profit = (
+            self.risk.take_profit_pct / 100 if self.risk.take_profit_pct else None
+        )
 
         for _, row in df.iterrows():
-            date_str = str(row.name.date()) if hasattr(row.name, "date") else str(row.name)
+            date_str = (
+                str(row.name.date()) if hasattr(row.name, "date") else str(row.name)
+            )
             close = float(row["Close"])
 
             # Check stop-loss / take-profit on open position
@@ -68,24 +75,34 @@ class Strategy(ABC):
                 ret = (close - entry_price) / entry_price
                 if stop_loss and ret <= -stop_loss:
                     pnl = (close - entry_price) * position
-                    trades.append(Trade(
-                        entry_date=entry_date, exit_date=date_str,
-                        entry_price=entry_price, exit_price=close,
-                        pnl=round(pnl, 2), pnl_pct=round(ret * 100, 4),
-                        holding_days=_calc_days(entry_date, date_str),
-                        exit_reason="stop_loss",
-                    ))
+                    trades.append(
+                        Trade(
+                            entry_date=entry_date,
+                            exit_date=date_str,
+                            entry_price=entry_price,
+                            exit_price=close,
+                            pnl=round(pnl, 2),
+                            pnl_pct=round(ret * 100, 4),
+                            holding_days=_calc_days(entry_date, date_str),
+                            exit_reason="stop_loss",
+                        )
+                    )
                     cash += close * position
                     position = 0.0
                 elif take_profit and ret >= take_profit:
                     pnl = (close - entry_price) * position
-                    trades.append(Trade(
-                        entry_date=entry_date, exit_date=date_str,
-                        entry_price=entry_price, exit_price=close,
-                        pnl=round(pnl, 2), pnl_pct=round(ret * 100, 4),
-                        holding_days=_calc_days(entry_date, date_str),
-                        exit_reason="take_profit",
-                    ))
+                    trades.append(
+                        Trade(
+                            entry_date=entry_date,
+                            exit_date=date_str,
+                            entry_price=entry_price,
+                            exit_price=close,
+                            pnl=round(pnl, 2),
+                            pnl_pct=round(ret * 100, 4),
+                            holding_days=_calc_days(entry_date, date_str),
+                            exit_reason="take_profit",
+                        )
+                    )
                     cash += close * position
                     position = 0.0
 
@@ -108,13 +125,18 @@ class Strategy(ABC):
                 # Sell
                 ret = (close - entry_price) / entry_price
                 pnl = (close - entry_price) * position
-                trades.append(Trade(
-                    entry_date=entry_date, exit_date=date_str,
-                    entry_price=entry_price, exit_price=close,
-                    pnl=round(pnl, 2), pnl_pct=round(ret * 100, 4),
-                    holding_days=_calc_days(entry_date, date_str),
-                    exit_reason="signal",
-                ))
+                trades.append(
+                    Trade(
+                        entry_date=entry_date,
+                        exit_date=date_str,
+                        entry_price=entry_price,
+                        exit_price=close,
+                        pnl=round(pnl, 2),
+                        pnl_pct=round(ret * 100, 4),
+                        holding_days=_calc_days(entry_date, date_str),
+                        exit_reason="signal",
+                    )
+                )
                 cash += close * position
                 position = 0.0
 
@@ -124,16 +146,25 @@ class Strategy(ABC):
         # Close any open position at end
         if position > 0:
             close = float(df["Close"].iloc[-1])
-            date_str = str(df.index[-1].date()) if hasattr(df.index[-1], "date") else str(df.index[-1])
+            date_str = (
+                str(df.index[-1].date())
+                if hasattr(df.index[-1], "date")
+                else str(df.index[-1])
+            )
             ret = (close - entry_price) / entry_price
             pnl = (close - entry_price) * position
-            trades.append(Trade(
-                entry_date=entry_date, exit_date=date_str,
-                entry_price=entry_price, exit_price=close,
-                pnl=round(pnl, 2), pnl_pct=round(ret * 100, 4),
-                holding_days=_calc_days(entry_date, date_str),
-                exit_reason="end_of_period",
-            ))
+            trades.append(
+                Trade(
+                    entry_date=entry_date,
+                    exit_date=date_str,
+                    entry_price=entry_price,
+                    exit_price=close,
+                    pnl=round(pnl, 2),
+                    pnl_pct=round(ret * 100, 4),
+                    holding_days=_calc_days(entry_date, date_str),
+                    exit_reason="end_of_period",
+                )
+            )
 
         return trades, equity_curve
 
@@ -143,6 +174,7 @@ class Strategy(ABC):
 
 def _calc_days(start: str, end: str) -> int:
     from datetime import date
+
     try:
         d1 = date.fromisoformat(start)
         d2 = date.fromisoformat(end)
@@ -151,7 +183,9 @@ def _calc_days(start: str, end: str) -> int:
         return 0
 
 
-def get_strategy(strategy_type: StrategyType, params: dict[str, Any], risk: RiskSettings) -> Strategy:
+def get_strategy(
+    strategy_type: StrategyType, params: dict[str, Any], risk: RiskSettings
+) -> Strategy:
     """Factory — return the appropriate Strategy subclass instance."""
     from app.engine.mean_reversion import MeanReversionStrategy
     from app.engine.ma_crossover import MACrossoverStrategy

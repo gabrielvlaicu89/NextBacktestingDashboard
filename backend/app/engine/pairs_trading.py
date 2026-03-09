@@ -1,9 +1,9 @@
 """Pairs Trading strategy — spread Z-score mean reversion."""
+
 from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
 import pandas as pd
 from scipy import stats
 
@@ -28,7 +28,9 @@ class PairsTradingStrategy(Strategy):
 
     def generate_signals(self, df: pd.DataFrame) -> pd.DataFrame:
         if self._df_b is None:
-            raise ValueError("Ticker B DataFrame not set. Call set_df_b() before running.")
+            raise ValueError(
+                "Ticker B DataFrame not set. Call set_df_b() before running."
+            )
 
         threshold = float(self.params.get("spread_threshold", 2.0))
         window = int(self.params.get("correlation_window", 60))
@@ -42,9 +44,7 @@ class PairsTradingStrategy(Strategy):
             df["signal"] = 0
             return df
 
-        slope, intercept, *_ = stats.linregress(
-            close_b[valid], close_a[valid]
-        )
+        slope, intercept, *_ = stats.linregress(close_b[valid], close_a[valid])
         spread = close_a - (slope * close_b + intercept)
 
         rolling_mean = spread.rolling(window).mean()
@@ -60,7 +60,7 @@ class PairsTradingStrategy(Strategy):
                 continue
             if not in_trade:
                 if z < -threshold:
-                    df.iloc[i, df.columns.get_loc("signal")] = 1   # spread low → buy A
+                    df.iloc[i, df.columns.get_loc("signal")] = 1  # spread low → buy A
                     in_trade = True
             else:
                 if z > -0.5:

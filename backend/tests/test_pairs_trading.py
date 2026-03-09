@@ -1,4 +1,5 @@
 """Unit tests for the Pairs Trading strategy."""
+
 import numpy as np
 import pytest
 

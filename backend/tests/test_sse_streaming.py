@@ -3,6 +3,7 @@
 Test that both /api/backtest/run and /api/backtest/optimize emit well-formed
 SSE events with correct event types, progressive results, and error handling.
 """
+
 from unittest.mock import patch
 import json
 
@@ -91,7 +92,11 @@ class TestBacktestSSE:
                 "ticker": "SPY",
                 "date_from": "2024-01-01",
                 "date_to": "2024-12-31",
-                "parameters": {"zscore_window": 20, "zscore_threshold": 2.0, "holding_period": 10},
+                "parameters": {
+                    "zscore_window": 20,
+                    "zscore_threshold": 2.0,
+                    "holding_period": 10,
+                },
             },
         )
         events = _parse_sse(response.text)
@@ -100,7 +105,7 @@ class TestBacktestSSE:
 
     @patch("app.routers.backtest.fetch_ohlcv", side_effect=_mock_ohlcv)
     def test_complete_event_has_full_results(self, mock_fetch, client):
-        """Complete event has metrics, equity_curve, drawdown_series, monthly_returns, trades."""
+        """Complete event includes all expected result collections."""
         response = client.post(
             "/api/backtest/run",
             json={
@@ -114,13 +119,24 @@ class TestBacktestSSE:
         complete = next(e for e in events if e["type"] == "complete")
         results = complete["results"]
 
-        required_keys = ["metrics", "equity_curve", "drawdown_series", "monthly_returns", "trades"]
+        required_keys = [
+            "metrics",
+            "equity_curve",
+            "drawdown_series",
+            "monthly_returns",
+            "trades",
+        ]
         for key in required_keys:
             assert key in results, f"Missing key: {key}"
 
         metric_keys = [
-            "total_return_pct", "annualized_return_pct", "max_drawdown_pct",
-            "sharpe_ratio", "sortino_ratio", "win_rate_pct", "profit_factor",
+            "total_return_pct",
+            "annualized_return_pct",
+            "max_drawdown_pct",
+            "sharpe_ratio",
+            "sortino_ratio",
+            "win_rate_pct",
+            "profit_factor",
         ]
         for key in metric_keys:
             assert key in results["metrics"], f"Missing metric: {key}"
@@ -151,7 +167,11 @@ class TestBacktestSSE:
                 "ticker": "BADTICKER",
                 "date_from": "2024-01-01",
                 "date_to": "2024-12-31",
-                "parameters": {"zscore_window": 20, "zscore_threshold": 2.0, "holding_period": 10},
+                "parameters": {
+                    "zscore_window": 20,
+                    "zscore_threshold": 2.0,
+                    "holding_period": 10,
+                },
             },
         )
         assert response.status_code == 200
@@ -288,10 +308,14 @@ class TestOptimizeSSE:
             },
         )
         events = _parse_sse(response.text)
-        progress_pcts = [e["percent"] for e in events if e["type"] == "progress" and "percent" in e]
+        progress_pcts = [
+            e["percent"] for e in events if e["type"] == "progress" and "percent" in e
+        ]
         assert 100.0 in progress_pcts
 
-    @patch("app.services.optimizer.fetch_ohlcv", side_effect=ValueError("Ticker not found"))
+    @patch(
+        "app.services.optimizer.fetch_ohlcv", side_effect=ValueError("Ticker not found")
+    )
     def test_optimize_data_fetch_error(self, mock_fetch, client):
         """Data fetch failure during optimization yields SSE error event."""
         response = client.post(

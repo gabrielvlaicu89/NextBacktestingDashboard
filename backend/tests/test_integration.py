@@ -1,4 +1,5 @@
 """Integration tests — full backtest flow through FastAPI endpoints."""
+
 from unittest.mock import patch
 import json
 

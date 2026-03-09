@@ -6,7 +6,7 @@
  * Returns { strategyId, runId } so the client can connect to the SSE stream.
  * The actual backtest execution is handled by GET /api/backtest?runId=...
  */
-import { getServerSession } from "@/lib/auth";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { backtestRequestSchema } from "@/lib/validations";
 import { Prisma } from "@/app/generated/prisma/client";
@@ -27,10 +27,7 @@ export async function createBacktestRun(input: {
   risk_settings?: Record<string, unknown>;
   parameters?: Record<string, unknown>;
 }): Promise<CreateRunResult> {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+  const user = await requireCurrentUser();
 
   // Validate the backtest-specific fields
   const parsed = backtestRequestSchema.safeParse(input);
@@ -45,7 +42,7 @@ export async function createBacktestRun(input: {
 
   const strategy = await prisma.strategy.create({
     data: {
-      userId: session.user.id,
+      userId: user.id,
       name: strategyName,
       type: strategy_type,
       ticker,
@@ -61,7 +58,7 @@ export async function createBacktestRun(input: {
   const run = await prisma.backtestRun.create({
     data: {
       strategyId: strategy.id,
-      userId: session.user.id,
+      userId: user.id,
       status: "PENDING",
     },
   });

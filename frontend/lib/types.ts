@@ -56,7 +56,7 @@ export interface PerformanceMetrics {
   sharpe_ratio: number;
   sortino_ratio: number;
   win_rate_pct: number;
-  profit_factor: number;
+  profit_factor: number | null;
 }
 
 // ── Backtest Response ─────────────────────────────────────────────────────────

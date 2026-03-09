@@ -1,4 +1,5 @@
 """Backtest router — triggers strategy runs and streams progress via SSE."""
+
 import asyncio
 import json
 from typing import AsyncGenerator
@@ -6,7 +7,12 @@ from typing import AsyncGenerator
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
-from app.models.schemas import BacktestRequest, BacktestResponse, OptimizeRequest, StrategyType
+from app.models.schemas import (
+    BacktestRequest,
+    BacktestResponse,
+    OptimizeRequest,
+    StrategyType,
+)
 from app.services.data_fetcher import fetch_ohlcv, fetch_earnings
 from app.services.metrics import compute_metrics
 from app.services.optimizer import run_grid_search
@@ -22,8 +28,12 @@ async def _stream_backtest(request: BacktestRequest) -> AsyncGenerator[str, None
         yield _sse("progress", percent=10, message="Fetching market data…")
         await asyncio.sleep(0)  # allow event loop to flush
 
-        df = await asyncio.to_thread(fetch_ohlcv, request.ticker, request.date_from, request.date_to)
-        benchmark_df = await asyncio.to_thread(fetch_ohlcv, request.benchmark, request.date_from, request.date_to)
+        df = await asyncio.to_thread(
+            fetch_ohlcv, request.ticker, request.date_from, request.date_to
+        )
+        benchmark_df = await asyncio.to_thread(
+            fetch_ohlcv, request.benchmark, request.date_from, request.date_to
+        )
 
         # ── Earnings Drift — inject Alpha Vantage earnings data into params ──
         if request.strategy_type == StrategyType.EARNINGS_DRIFT:
@@ -35,34 +45,49 @@ async def _stream_backtest(request: BacktestRequest) -> AsyncGenerator[str, None
         yield _sse("progress", percent=30, message="Running strategy…")
         await asyncio.sleep(0)
 
-        strategy = get_strategy(request.strategy_type, request.parameters, request.risk_settings)
+        strategy = get_strategy(
+            request.strategy_type, request.parameters, request.risk_settings
+        )
 
         # ── Pairs Trading — fetch ticker B and inject into strategy ───────────
         if request.strategy_type == StrategyType.PAIRS_TRADING:
             ticker_b = request.parameters.get("ticker_b")
             if not ticker_b:
-                yield _sse("error", message="Pairs trading requires a 'ticker_b' parameter.")
+                yield _sse(
+                    "error", message="Pairs trading requires a 'ticker_b' parameter."
+                )
                 return
             if ticker_b == request.ticker:
-                yield _sse("error", message="Ticker B must be different from the primary ticker.")
+                yield _sse(
+                    "error",
+                    message="Ticker B must be different from the primary ticker.",
+                )
                 return
             yield _sse("progress", percent=35, message=f"Fetching {ticker_b} data…")
             await asyncio.sleep(0)
             try:
-                df_b = await asyncio.to_thread(fetch_ohlcv, ticker_b, request.date_from, request.date_to)
+                df_b = await asyncio.to_thread(
+                    fetch_ohlcv, ticker_b, request.date_from, request.date_to
+                )
             except ValueError as exc:
                 yield _sse("error", message=f"Ticker B ({ticker_b}): {exc}")
                 return
             if isinstance(strategy, PairsTradingStrategy):
                 strategy.set_df_b(df_b)
 
-        trades, equity_curve = await asyncio.to_thread(strategy.run, df, request.risk_settings.starting_capital)
+        trades, equity_curve = await asyncio.to_thread(
+            strategy.run, df, request.risk_settings.starting_capital
+        )
 
         yield _sse("progress", percent=70, message="Computing metrics…")
         await asyncio.sleep(0)
 
         results: BacktestResponse = await asyncio.to_thread(
-            compute_metrics, trades, equity_curve, benchmark_df, request.risk_settings.starting_capital
+            compute_metrics,
+            trades,
+            equity_curve,
+            benchmark_df,
+            request.risk_settings.starting_capital,
         )
 
         yield _sse("progress", percent=100, message="Done")
@@ -73,7 +98,13 @@ async def _stream_backtest(request: BacktestRequest) -> AsyncGenerator[str, None
         yield _sse("error", message=str(exc))
 
 
-def _sse(event_type: str, *, percent: float | None = None, message: str | None = None, results=None) -> str:
+def _sse(
+    event_type: str,
+    *,
+    percent: float | None = None,
+    message: str | None = None,
+    results=None,
+) -> str:
     data = {"type": event_type}
     if percent is not None:
         data["percent"] = percent
@@ -81,7 +112,7 @@ def _sse(event_type: str, *, percent: float | None = None, message: str | None =
         data["message"] = message
     if results is not None:
         data["results"] = results
-    return f"data: {json.dumps(data)}\n\n"
+    return f"data: {json.dumps(data, allow_nan=False)}\n\n"
 
 
 @router.post("/run")
@@ -97,6 +128,7 @@ async def run_backtest(request: BacktestRequest):
 @router.post("/optimize")
 async def optimize_backtest(request: OptimizeRequest):
     """Stream optimization grid search progress as SSE."""
+
     async def _stream():
         async for event in run_grid_search(request):
             yield event

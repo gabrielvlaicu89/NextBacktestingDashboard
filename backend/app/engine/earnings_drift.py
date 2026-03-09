@@ -1,4 +1,5 @@
 """Earnings Drift (PEAD) strategy — trades around earnings announcements."""
+
 from __future__ import annotations
 
 import pandas as pd
@@ -28,14 +29,14 @@ class EarningsDriftStrategy(Strategy):
 
         # Filter earnings by surprise threshold
         qualifying = [
-            e for e in earnings_data
+            e
+            for e in earnings_data
             if abs(e.get("surprise_pct", 0)) >= surprise_threshold
         ]
 
         trading_dates = list(df.index)
         date_strs = [
-            str(dt.date()) if hasattr(dt, "date") else str(dt)
-            for dt in trading_dates
+            str(dt.date()) if hasattr(dt, "date") else str(dt) for dt in trading_dates
         ]
         date_to_idx = {d: i for i, d in enumerate(date_strs)}
 

@@ -1,8 +1,8 @@
 """Tests for Phase 11 — date validation, pairs trading edge cases,
 improved error messages, and Alpha Vantage rate limiting."""
-from unittest.mock import patch, MagicMock
+
 import json
-import time
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -44,6 +44,7 @@ def _parse_sse(text: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Pydantic date validation
 # ---------------------------------------------------------------------------
+
 
 class TestDateValidation:
     def test_backtest_request_rejects_date_to_before_date_from(self):
@@ -123,6 +124,7 @@ class TestDateValidation:
 # Pairs trading edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestPairsTradingEdgeCases:
     @patch("app.routers.backtest.fetch_ohlcv", side_effect=_mock_ohlcv)
     def test_pairs_trading_requires_ticker_b(self, mock_fetch, client):
@@ -152,7 +154,11 @@ class TestPairsTradingEdgeCases:
                 "ticker": "SPY",
                 "date_from": "2024-01-01",
                 "date_to": "2024-12-31",
-                "parameters": {"ticker_b": "SPY", "correlation_window": 60, "spread_threshold": 2.0},
+                "parameters": {
+                    "ticker_b": "SPY",
+                    "correlation_window": 60,
+                    "spread_threshold": 2.0,
+                },
             },
         )
         events = _parse_sse(response.text)
@@ -164,6 +170,7 @@ class TestPairsTradingEdgeCases:
     def test_pairs_trading_handles_ticker_b_data_failure(self, mock_fetch, client):
         """When ticker_b has no data, a clear error event is sent."""
         call_count = 0
+
         def _side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -181,7 +188,11 @@ class TestPairsTradingEdgeCases:
                 "ticker": "SPY",
                 "date_from": "2024-01-01",
                 "date_to": "2024-12-31",
-                "parameters": {"ticker_b": "INVALID", "correlation_window": 60, "spread_threshold": 2.0},
+                "parameters": {
+                    "ticker_b": "INVALID",
+                    "correlation_window": 60,
+                    "spread_threshold": 2.0,
+                },
             },
         )
         events = _parse_sse(response.text)
@@ -194,13 +205,16 @@ class TestPairsTradingEdgeCases:
 # Improved error messages
 # ---------------------------------------------------------------------------
 
+
 class TestImprovedErrorMessages:
     @patch("app.routers.backtest.fetch_ohlcv")
     def test_delisted_ticker_error_message(self, mock_fetch, client):
         """A ticker with no data includes 'delisted' hint in the error."""
         mock_fetch.side_effect = ValueError(
-            "No data returned for ticker 'ENRN' in range 2024-01-01 – 2024-12-31. "
-            "The ticker may be invalid, delisted, or the date range may predate its listing."
+            "No data returned for ticker 'ENRN' in range "
+            "2024-01-01 – 2024-12-31. "
+            "The ticker may be invalid, delisted, "
+            "or the date range may predate its listing."
         )
         response = client.post(
             "/api/backtest/run",
@@ -243,6 +257,7 @@ class TestImprovedErrorMessages:
 # Alpha Vantage rate limiter
 # ---------------------------------------------------------------------------
 
+
 class TestAlphaVantageRateLimiter:
     def test_limiter_allows_requests_within_limit(self):
         limiter = _AlphaVantageRateLimiter(max_per_day=5)
@@ -271,11 +286,18 @@ class TestAlphaVantageRateLimiter:
 
     @patch("app.services.data_fetcher._av_limiter")
     @patch("app.services.data_fetcher.httpx.Client")
-    def test_fetch_earnings_handles_rate_limit_note(self, mock_client_cls, mock_limiter):
+    def test_fetch_earnings_handles_rate_limit_note(
+        self, mock_client_cls, mock_limiter
+    ):
         """When Alpha Vantage returns a 'Note' key, fetch_earnings returns []."""
         mock_limiter.acquire.return_value = True
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {"Note": "Thank you for using Alpha Vantage! Our standard API call frequency is 25 calls per day."}
+        mock_resp.json.return_value = {
+            "Note": (
+                "Thank you for using Alpha Vantage! "
+                "Our standard API call frequency is 25 calls per day."
+            )
+        }
         mock_resp.raise_for_status = MagicMock()
         mock_client = MagicMock()
         mock_client.__enter__ = MagicMock(return_value=mock_client)

@@ -1,4 +1,5 @@
 """Pydantic schemas for request/response models."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -7,8 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
-
 # ── Enums ─────────────────────────────────────────────────────────────────────
+
 
 class StrategyType(str, Enum):
     MEAN_REVERSION = "MEAN_REVERSION"
@@ -30,10 +31,11 @@ class PositionSizingMode(str, Enum):
 
 # ── Sub-models ────────────────────────────────────────────────────────────────
 
+
 class RiskSettings(BaseModel):
     starting_capital: float = Field(10_000, ge=100)
     position_sizing_mode: PositionSizingMode = PositionSizingMode.PERCENT_PORTFOLIO
-    position_size: float = Field(100.0, gt=0)   # $ if FIXED_DOLLAR, % if PERCENT
+    position_size: float = Field(100.0, gt=0)  # $ if FIXED_DOLLAR, % if PERCENT
     stop_loss_pct: float | None = Field(None, ge=0, le=100)
     take_profit_pct: float | None = Field(None, ge=0)
 
@@ -53,7 +55,7 @@ class MACrossoverParams(BaseModel):
 class EarningsDriftParams(BaseModel):
     days_before: int = Field(2, ge=0)
     days_after: int = Field(5, ge=0)
-    eps_surprise_threshold: float = Field(0.0)   # % — 0 = any positive surprise
+    eps_surprise_threshold: float = Field(0.0)  # % — 0 = any positive surprise
 
 
 class PairsTradingParams(BaseModel):
@@ -63,6 +65,7 @@ class PairsTradingParams(BaseModel):
 
 
 # ── Backtest Request ──────────────────────────────────────────────────────────
+
 
 class BacktestRequest(BaseModel):
     strategy_type: StrategyType
@@ -82,6 +85,7 @@ class BacktestRequest(BaseModel):
 
 # ── Trade ─────────────────────────────────────────────────────────────────────
 
+
 class TradeResult(BaseModel):
     entry_date: str
     exit_date: str
@@ -95,6 +99,7 @@ class TradeResult(BaseModel):
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
 
+
 class PerformanceMetrics(BaseModel):
     total_return_pct: float
     annualized_return_pct: float
@@ -102,20 +107,22 @@ class PerformanceMetrics(BaseModel):
     sharpe_ratio: float
     sortino_ratio: float
     win_rate_pct: float
-    profit_factor: float
+    profit_factor: float | None
 
 
 # ── Backtest Response ─────────────────────────────────────────────────────────
 
+
 class BacktestResponse(BaseModel):
     metrics: PerformanceMetrics
-    equity_curve: list[dict]       # [{date, value, benchmark_value}, ...]
-    drawdown_series: list[dict]    # [{date, drawdown_pct}, ...]
-    monthly_returns: list[dict]    # [{year, month, return_pct}, ...]
+    equity_curve: list[dict]  # [{date, value, benchmark_value}, ...]
+    drawdown_series: list[dict]  # [{date, drawdown_pct}, ...]
+    monthly_returns: list[dict]  # [{year, month, return_pct}, ...]
     trades: list[TradeResult]
 
 
 # ── Optimize Request ──────────────────────────────────────────────────────────
+
 
 class ParamRange(BaseModel):
     min: float
@@ -143,14 +150,16 @@ class OptimizeRequest(BaseModel):
 
 # ── SSE Progress ─────────────────────────────────────────────────────────────
 
+
 class ProgressEvent(BaseModel):
-    type: str          # "progress" | "complete" | "error"
+    type: str  # "progress" | "complete" | "error"
     percent: float | None = None
     message: str | None = None
     results: BacktestResponse | None = None
 
 
 # ── Ticker ────────────────────────────────────────────────────────────────────
+
 
 class TickerResult(BaseModel):
     symbol: str

@@ -1,4 +1,5 @@
 """Unit tests for the Mean Reversion strategy."""
+
 import numpy as np
 
 from app.engine.mean_reversion import MeanReversionStrategy

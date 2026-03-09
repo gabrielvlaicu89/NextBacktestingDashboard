@@ -32,13 +32,24 @@ export const COMPARISON_COLORS = [
 export interface EquitySeries {
   id: string;
   name: string;
-  color: string;
+  color?: string;
   data: Array<{ date: string; value: number }>;
+}
+
+interface ResolvedEquitySeries extends EquitySeries {
+  color: string;
 }
 
 interface ComparisonEquityChartProps {
   series: EquitySeries[];
   height?: number;
+}
+
+function resolveSeriesStyle(series: EquitySeries[]): ResolvedEquitySeries[] {
+  return series.map((entry, index) => ({
+    ...entry,
+    color: COMPARISON_COLORS[index % COMPARISON_COLORS.length],
+  }));
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -50,9 +61,10 @@ export function ComparisonEquityChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRefsMap = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
+  const resolvedSeries = resolveSeriesStyle(series);
 
   useEffect(() => {
-    if (!containerRef.current || series.length === 0) return;
+    if (!containerRef.current || resolvedSeries.length === 0) return;
 
     const chart = createChart(containerRef.current, {
       height,
@@ -71,7 +83,7 @@ export function ComparisonEquityChart({
     chartRef.current = chart;
 
     // Add one LineSeries per strategy
-    for (const s of series) {
+    for (const s of resolvedSeries) {
       if (s.data.length === 0) continue;
 
       const startValue = s.data[0].value || 1;
@@ -82,7 +94,7 @@ export function ComparisonEquityChart({
 
       const lineSeries = chart.addSeries(LineSeries, {
         color: s.color,
-        lineWidth: 2,
+        lineWidth: 1,
         title: s.name,
       });
       lineSeries.setData(normalizedData);
@@ -107,9 +119,9 @@ export function ComparisonEquityChart({
       chartRef.current = null;
       currentSeriesRefs.clear();
     };
-  }, [series, height]);
+  }, [resolvedSeries, height]);
 
-  if (series.length === 0) {
+  if (resolvedSeries.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -132,16 +144,23 @@ export function ComparisonEquityChart({
         {/* Legend */}
         <div
           data-testid="chart-legend"
-          className="mb-3 flex flex-wrap gap-4"
+          className="mb-4 flex flex-wrap gap-2"
         >
-          {series.map((s) => (
-            <div key={s.id} className="flex items-center gap-1.5">
+          {resolvedSeries.map((s) => (
+            <div
+              key={s.id}
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5"
+            >
               <span
-                className="inline-block h-2.5 w-5 rounded-sm"
-                style={{ backgroundColor: s.color }}
+                className="inline-block w-6"
+                style={{
+                  borderTopColor: s.color,
+                  borderTopStyle: "solid",
+                  borderTopWidth: "1px",
+                }}
                 aria-hidden="true"
               />
-              <span className="text-xs text-muted-foreground">{s.name}</span>
+              <span className="text-xs font-medium text-foreground">{s.name}</span>
             </div>
           ))}
         </div>

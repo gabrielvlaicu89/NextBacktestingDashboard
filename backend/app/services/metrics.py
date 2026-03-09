@@ -1,10 +1,9 @@
 """Metrics computation — Sharpe, Sortino, drawdown, win rate, etc."""
+
 from __future__ import annotations
 
 import math
-from datetime import datetime
 
-import numpy as np
 import pandas as pd
 
 from app.engine.base import Trade
@@ -43,7 +42,11 @@ def compute_metrics(
 
     n_days = (eq_df.index[-1] - eq_df.index[0]).days or 1
     n_years = n_days / 365.25
-    annualized_return_pct = ((final_value / starting_capital) ** (1 / n_years) - 1) * 100 if n_years > 0 else 0.0
+    annualized_return_pct = (
+        ((final_value / starting_capital) ** (1 / n_years) - 1) * 100
+        if n_years > 0
+        else 0.0
+    )
 
     # ── Drawdown ──────────────────────────────────────────────────────────────
     running_max = eq_df["value"].cummax()
@@ -61,13 +64,15 @@ def compute_metrics(
 
     sharpe_ratio = (
         float(excess_returns.mean() / excess_returns.std() * math.sqrt(252))
-        if excess_returns.std() > 0 else 0.0
+        if excess_returns.std() > 0
+        else 0.0
     )
 
     downside = excess_returns[excess_returns < 0]
     sortino_ratio = (
         float(excess_returns.mean() / downside.std() * math.sqrt(252))
-        if len(downside) > 0 and downside.std() > 0 else 0.0
+        if len(downside) > 0 and downside.std() > 0
+        else 0.0
     )
 
     # ── Win rate & Profit factor ──────────────────────────────────────────────
@@ -77,7 +82,7 @@ def compute_metrics(
         win_rate_pct = len(wins) / len(trades) * 100
         gross_profit = sum(t.pnl for t in wins)
         gross_loss = abs(sum(t.pnl for t in losses))
-        profit_factor = gross_profit / gross_loss if gross_loss > 0 else float("inf")
+        profit_factor = gross_profit / gross_loss if gross_loss > 0 else None
     else:
         win_rate_pct = 0.0
         profit_factor = 0.0
@@ -117,7 +122,7 @@ def compute_metrics(
             sharpe_ratio=round(sharpe_ratio, 4),
             sortino_ratio=round(sortino_ratio, 4),
             win_rate_pct=round(win_rate_pct, 4),
-            profit_factor=round(profit_factor, 4),
+            profit_factor=(round(profit_factor, 4) if profit_factor is not None else None),
         ),
         equity_curve=equity_with_bench,
         drawdown_series=drawdown_series,

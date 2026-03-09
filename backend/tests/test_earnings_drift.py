@@ -1,4 +1,5 @@
 """Unit tests for the Earnings Drift (PEAD) strategy."""
+
 from app.engine.earnings_drift import EarningsDriftStrategy
 from app.models.schemas import RiskSettings
 from tests.conftest import make_df
@@ -29,7 +30,7 @@ def test_signals_around_earnings_date():
     )
     result = strategy.generate_signals(df.copy())
 
-    assert result.iloc[28]["signal"] == 1   # buy 2 days before earnings
+    assert result.iloc[28]["signal"] == 1  # buy 2 days before earnings
     assert result.iloc[35]["signal"] == -1  # sell 5 days after earnings
 
 

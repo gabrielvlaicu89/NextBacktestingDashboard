@@ -26,6 +26,11 @@ const negativeMetrics: PerformanceMetrics = {
   profit_factor: 0.6,
 };
 
+const nullableProfitFactorMetrics: PerformanceMetrics = {
+  ...mockMetrics,
+  profit_factor: null,
+};
+
 describe("PerformanceCards", () => {
   it("renders the performance cards container", () => {
     render(<PerformanceCards metrics={mockMetrics} />);
@@ -69,6 +74,11 @@ describe("PerformanceCards", () => {
   it("formats drawdown as percentage", () => {
     render(<PerformanceCards metrics={mockMetrics} />);
     expect(screen.getByTestId("metric-value-max_drawdown_pct")).toHaveTextContent("-15.30%");
+  });
+
+  it("renders N/A for nullable profit factor", () => {
+    render(<PerformanceCards metrics={nullableProfitFactorMetrics} />);
+    expect(screen.getByTestId("metric-value-profit_factor")).toHaveTextContent("N/A");
   });
 
   it("applies green color class for positive total return", () => {

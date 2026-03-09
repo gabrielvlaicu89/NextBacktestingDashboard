@@ -1,4 +1,5 @@
 """Ticker search router — proxies Yahoo Finance autocomplete."""
+
 import httpx
 from fastapi import APIRouter, Query
 
